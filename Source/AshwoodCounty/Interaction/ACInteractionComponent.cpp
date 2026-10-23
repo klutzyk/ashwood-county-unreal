@@ -3,6 +3,7 @@
 #include "Interaction/ACInteractionComponent.h"
 
 #include "Interaction/ACInteractableInterface.h"
+#include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -86,24 +87,134 @@ AActor* UACInteractionComponent::FindLocalTarget(FText& OutPrompt) const
 		? World->SweepSingleByChannel(ViewHit, ViewLocation, TraceEnd, FQuat::Identity, TraceChannel, FCollisionShape::MakeSphere(TraceRadius), QueryParams)
 		: World->LineTraceSingleByChannel(ViewHit, ViewLocation, TraceEnd, TraceChannel, QueryParams);
 
-	AActor* Candidate = bHit ? ViewHit.GetActor() : nullptr;
-	if (!IsValid(Candidate) || !Candidate->Implements<UACInteractableInterface>())
+	// A valid direct view hit always wins. The fallback is only used when precise
+	// camera targeting does not identify an interactable.
+	AActor* DirectCandidate = bHit ? ViewHit.GetActor() : nullptr;
+	if (IsValidCandidate(OwnerPawn, DirectCandidate))
+	{
+		OutPrompt = IACInteractableInterface::Execute_GetInteractionPrompt(DirectCandidate, const_cast<APawn*>(OwnerPawn));
+		return DirectCandidate;
+	}
+
+	const float SearchRadius = FMath::Min(ProximityRadius, InteractionDistance);
+	if (SearchRadius <= 0.0f)
 	{
 		return nullptr;
 	}
 
-	if (!IsTargetInRange(OwnerPawn, Candidate) || !HasLineOfSightToTarget(OwnerPawn, Candidate))
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+
+	TArray<FOverlapResult> Overlaps;
+	World->OverlapMultiByObjectType(
+		Overlaps,
+		OwnerPawn->GetActorLocation(),
+		FQuat::Identity,
+		ObjectQueryParams,
+		FCollisionShape::MakeSphere(SearchRadius),
+		QueryParams);
+
+	AActor* BestCandidate = nullptr;
+	float BestScore = -FLT_MAX;
+	float CurrentTargetScore = -FLT_MAX;
+	TSet<AActor*> EvaluatedActors;
+	const FVector ViewForward = ViewRotation.Vector();
+
+	for (const FOverlapResult& Overlap : Overlaps)
 	{
-		return nullptr;
+		AActor* Candidate = Overlap.GetActor();
+		if (!IsValid(Candidate) || EvaluatedActors.Contains(Candidate))
+		{
+			continue;
+		}
+		EvaluatedActors.Add(Candidate);
+
+		if (!IsValidCandidate(OwnerPawn, Candidate))
+		{
+			continue;
+		}
+
+		const float Score = ScoreProximityCandidate(OwnerPawn, Candidate, ViewLocation, ViewForward);
+		if (Score == -FLT_MAX)
+		{
+			continue;
+		}
+
+		if (Candidate == CurrentTarget.Get())
+		{
+			CurrentTargetScore = Score;
+		}
+
+		if (Score > BestScore)
+		{
+			BestScore = Score;
+			BestCandidate = Candidate;
+		}
 	}
 
-	if (!IACInteractableInterface::Execute_CanInteract(Candidate, const_cast<APawn*>(OwnerPawn)))
+	if (CurrentTarget.IsValid() && CurrentTargetScore > -FLT_MAX &&
+		CurrentTargetScore + TargetSwitchScoreAdvantage >= BestScore)
 	{
-		return nullptr;
+		BestCandidate = CurrentTarget.Get();
 	}
 
-	OutPrompt = IACInteractableInterface::Execute_GetInteractionPrompt(Candidate, const_cast<APawn*>(OwnerPawn));
-	return Candidate;
+	if (BestCandidate)
+	{
+		OutPrompt = IACInteractableInterface::Execute_GetInteractionPrompt(BestCandidate, const_cast<APawn*>(OwnerPawn));
+	}
+	return BestCandidate;
+}
+
+bool UACInteractionComponent::IsValidCandidate(const APawn* InteractingPawn, AActor* Candidate) const
+{
+	return IsValid(Candidate)
+		&& Candidate->Implements<UACInteractableInterface>()
+		&& IsTargetInRange(InteractingPawn, Candidate)
+		&& HasLineOfSightToTarget(InteractingPawn, Candidate)
+		&& IACInteractableInterface::Execute_CanInteract(Candidate, const_cast<APawn*>(InteractingPawn));
+}
+
+float UACInteractionComponent::ScoreProximityCandidate(
+	const APawn* InteractingPawn,
+	const AActor* Candidate,
+	const FVector& ViewLocation,
+	const FVector& ViewForward) const
+{
+	if (!InteractingPawn || !Candidate)
+	{
+		return -FLT_MAX;
+	}
+
+	const FVector TargetPoint = GetClosestTargetPoint(ViewLocation, Candidate);
+	const FVector DirectionToTarget = (TargetPoint - ViewLocation).GetSafeNormal();
+	const float FacingDot = FVector::DotProduct(ViewForward, DirectionToTarget);
+	if (FacingDot < MinimumFacingDot)
+	{
+		return -FLT_MAX;
+	}
+
+	const FVector PawnTargetPoint = GetClosestTargetPoint(InteractingPawn->GetActorLocation(), Candidate);
+	const float Distance = FVector::Distance(InteractingPawn->GetActorLocation(), PawnTargetPoint);
+	const float DistanceScore = 1.0f - FMath::Clamp(Distance / FMath::Max(ProximityRadius, 1.0f), 0.0f, 1.0f);
+	const float AlignmentScore = (FacingDot + 1.0f) * 0.5f;
+	return AlignmentScore * 0.65f + DistanceScore * 0.35f;
+}
+
+FVector UACInteractionComponent::GetClosestTargetPoint(const FVector& SourceLocation, const AActor* Target) const
+{
+	if (!Target)
+	{
+		return SourceLocation;
+	}
+
+	FVector BoundsOrigin;
+	FVector BoundsExtent;
+	Target->GetActorBounds(true, BoundsOrigin, BoundsExtent);
+	return FVector(
+		FMath::Clamp(SourceLocation.X, BoundsOrigin.X - BoundsExtent.X, BoundsOrigin.X + BoundsExtent.X),
+		FMath::Clamp(SourceLocation.Y, BoundsOrigin.Y - BoundsExtent.Y, BoundsOrigin.Y + BoundsExtent.Y),
+		FMath::Clamp(SourceLocation.Z, BoundsOrigin.Z - BoundsExtent.Z, BoundsOrigin.Z + BoundsExtent.Z));
 }
 
 bool UACInteractionComponent::IsTargetInRange(const APawn* InteractingPawn, const AActor* Target) const
@@ -128,14 +239,8 @@ bool UACInteractionComponent::HasLineOfSightToTarget(const APawn* InteractingPaw
 		return false;
 	}
 
-	FVector BoundsOrigin;
-	FVector BoundsExtent;
-	Target->GetActorBounds(true, BoundsOrigin, BoundsExtent);
 	const FVector EyeLocation = InteractingPawn->GetPawnViewLocation();
-	const FVector ClosestBoundsPoint(
-		FMath::Clamp(EyeLocation.X, BoundsOrigin.X - BoundsExtent.X, BoundsOrigin.X + BoundsExtent.X),
-		FMath::Clamp(EyeLocation.Y, BoundsOrigin.Y - BoundsExtent.Y, BoundsOrigin.Y + BoundsExtent.Y),
-		FMath::Clamp(EyeLocation.Z, BoundsOrigin.Z - BoundsExtent.Z, BoundsOrigin.Z + BoundsExtent.Z));
+	const FVector ClosestBoundsPoint = GetClosestTargetPoint(EyeLocation, Target);
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ACInteractionOcclusion), false, InteractingPawn);
 	FHitResult OcclusionHit;

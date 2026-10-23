@@ -56,6 +56,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Targeting", meta = (ClampMin = "0.0", Units = "cm"))
 	float TraceRadius = 8.0f;
 
+	/** Radius used to find nearby fallback candidates when the view trace misses. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Targeting", meta = (ClampMin = "0.0", Units = "cm"))
+	float ProximityRadius = 300.0f;
+
+	/** Minimum camera alignment for proximity candidates. Zero excludes the rear hemisphere. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Targeting", meta = (ClampMin = "-1.0", ClampMax = "1.0"))
+	float MinimumFacingDot = 0.0f;
+
+	/** Keeps the current target until another candidate is meaningfully better. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Targeting", meta = (ClampMin = "0.0"))
+	float TargetSwitchScoreAdvantage = 0.15f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Targeting")
 	TEnumAsByte<ECollisionChannel> TraceChannel = ECC_Visibility;
 
@@ -69,6 +81,9 @@ private:
 
 	APawn* GetOwnerPawn() const;
 	AActor* FindLocalTarget(FText& OutPrompt) const;
+	bool IsValidCandidate(const APawn* InteractingPawn, AActor* Candidate) const;
+	float ScoreProximityCandidate(const APawn* InteractingPawn, const AActor* Candidate, const FVector& ViewLocation, const FVector& ViewForward) const;
+	FVector GetClosestTargetPoint(const FVector& SourceLocation, const AActor* Target) const;
 	bool ValidateServerInteraction(APawn* InteractingPawn, AActor* RequestedTarget) const;
 	bool IsTargetInRange(const APawn* InteractingPawn, const AActor* Target) const;
 	bool HasLineOfSightToTarget(const APawn* InteractingPawn, const AActor* Target) const;

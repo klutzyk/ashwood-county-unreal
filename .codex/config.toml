@@ -1,0 +1,5 @@
+[mcp_servers.pinwright]
+command = "C:/Program Files/Epic Games/UE_5.8/Engine/Binaries/ThirdParty/Python3/Win64/python.exe"
+args = ["C:/Users/kalz9/Documents/Unreal Projects/AshwoodCounty/Plugins/PinWright/Content/Python/mcp_proxy.py", "--token-file", "C:/Users/kalz9/Documents/Unreal Projects/AshwoodCounty/Saved/PinWright/gateway-token", "--port-file", "C:/Users/kalz9/Documents/Unreal Projects/AshwoodCounty/Saved/PinWright/gateway-port"]
+startup_timeout_sec = 5.0
+tool_timeout_sec = 300.0

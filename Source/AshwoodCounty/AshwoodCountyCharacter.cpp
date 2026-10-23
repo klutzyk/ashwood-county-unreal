@@ -11,6 +11,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "AshwoodCounty.h"
+#include "Interaction/ACInteractionComponent.h"
 
 AAshwoodCountyCharacter::AAshwoodCountyCharacter()
 {
@@ -46,6 +47,8 @@ AAshwoodCountyCharacter::AAshwoodCountyCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
+	InteractionComponent = CreateDefaultSubobject<UACInteractionComponent>(TEXT("InteractionComponent"));
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
@@ -65,10 +68,23 @@ void AAshwoodCountyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AAshwoodCountyCharacter::Look);
+
+		if (InteractionAction)
+		{
+			EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Started, this, &AAshwoodCountyCharacter::Interact);
+		}
 	}
 	else
 	{
 		UE_LOG(LogAshwoodCounty, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
+	}
+}
+
+void AAshwoodCountyCharacter::Interact()
+{
+	if (InteractionComponent)
+	{
+		InteractionComponent->RequestInteraction();
 	}
 }
 

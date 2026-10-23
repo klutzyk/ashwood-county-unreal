@@ -8,6 +8,8 @@
 
 class UInputMappingContext;
 class UUserWidget;
+class UACInteractionComponent;
+class UACInteractionPromptWidget;
 
 /**
  *  Basic PlayerController class for a third person game
@@ -36,6 +38,13 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UUserWidget> MobileControlsWidget;
 
+	/** Local-only contextual prompt presentation. Set to a designer Widget Blueprint. */
+	UPROPERTY(EditDefaultsOnly, Category = "Interaction|UI")
+	TSubclassOf<UACInteractionPromptWidget> InteractionPromptWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UACInteractionPromptWidget> InteractionPromptWidget;
+
 	/** If true, the player will use UMG touch controls even if not playing on mobile platforms */
 	UPROPERTY(EditAnywhere, Config, Category = "Input|Touch Controls")
 	bool bForceTouchControls = false;
@@ -46,7 +55,17 @@ protected:
 	/** Input mapping context setup */
 	virtual void SetupInputComponent() override;
 
+	virtual void SetPawn(APawn* InPawn) override;
+
 	/** Returns true if the player should use UMG touch controls */
 	bool ShouldUseTouchControls() const;
+
+private:
+	void BindInteractionSource(APawn* SourcePawn);
+
+	UFUNCTION()
+	void HandleInteractionTargetChanged(AActor* Target, const FText& Prompt);
+
+	TWeakObjectPtr<UACInteractionComponent> BoundInteractionComponent;
 
 };

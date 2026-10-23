@@ -10,6 +10,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
+class UACInteractionComponent;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -30,6 +31,10 @@ class AAshwoodCountyCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
+
+	/** Reusable interaction capability; object-specific behavior lives on targets. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UACInteractionComponent* InteractionComponent;
 	
 protected:
 
@@ -49,6 +54,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;
 
+	/** Contextual world interaction action (E by default in IMC_Default). */
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* InteractionAction;
+
 public:
 
 	/** Constructor */
@@ -66,6 +75,9 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+	/** Route input to the reusable interaction component. */
+	void Interact();
 
 public:
 
@@ -92,5 +104,8 @@ public:
 
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	/** Returns interaction component subobject. */
+	FORCEINLINE UACInteractionComponent* GetInteractionComponent() const { return InteractionComponent; }
 };
 

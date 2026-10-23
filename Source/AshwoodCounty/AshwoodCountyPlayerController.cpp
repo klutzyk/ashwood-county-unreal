@@ -8,10 +8,24 @@
 #include "Blueprint/UserWidget.h"
 #include "AshwoodCounty.h"
 #include "Widgets/Input/SVirtualJoystick.h"
+#include "Interaction/ACInteractionComponent.h"
+#include "UI/ACInteractionPromptWidget.h"
 
 void AAshwoodCountyPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (IsLocalPlayerController() && InteractionPromptWidgetClass)
+	{
+		InteractionPromptWidget = CreateWidget<UACInteractionPromptWidget>(this, InteractionPromptWidgetClass);
+		if (InteractionPromptWidget)
+		{
+			InteractionPromptWidget->AddToPlayerScreen(10);
+			InteractionPromptWidget->SetInteractionPrompt(FText::GetEmpty(), false);
+		}
+	}
+
+	BindInteractionSource(GetPawn());
 
 	// only spawn touch controls on local player controllers
 	if (IsLocalPlayerController() && ShouldUseTouchControls())
@@ -30,6 +44,51 @@ void AAshwoodCountyPlayerController::BeginPlay()
 
 		}
 
+	}
+}
+
+void AAshwoodCountyPlayerController::SetPawn(APawn* InPawn)
+{
+	Super::SetPawn(InPawn);
+	BindInteractionSource(InPawn);
+}
+
+void AAshwoodCountyPlayerController::BindInteractionSource(APawn* SourcePawn)
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	if (UACInteractionComponent* PreviousComponent = BoundInteractionComponent.Get())
+	{
+		PreviousComponent->OnInteractionTargetChanged.RemoveDynamic(this, &AAshwoodCountyPlayerController::HandleInteractionTargetChanged);
+	}
+	BoundInteractionComponent.Reset();
+
+	if (InteractionPromptWidget)
+	{
+		InteractionPromptWidget->SetInteractionPrompt(FText::GetEmpty(), false);
+	}
+
+	if (!SourcePawn)
+	{
+		return;
+	}
+
+	if (UACInteractionComponent* InteractionComponent = SourcePawn->FindComponentByClass<UACInteractionComponent>())
+	{
+		BoundInteractionComponent = InteractionComponent;
+		InteractionComponent->OnInteractionTargetChanged.AddUniqueDynamic(this, &AAshwoodCountyPlayerController::HandleInteractionTargetChanged);
+		HandleInteractionTargetChanged(InteractionComponent->GetCurrentTarget(), InteractionComponent->GetCurrentPrompt());
+	}
+}
+
+void AAshwoodCountyPlayerController::HandleInteractionTargetChanged(AActor* Target, const FText& Prompt)
+{
+	if (InteractionPromptWidget)
+	{
+		InteractionPromptWidget->SetInteractionPrompt(Prompt, IsValid(Target) && !Prompt.IsEmpty());
 	}
 }
 

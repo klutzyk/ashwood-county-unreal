@@ -1,1 +1,8 @@
-Content/** filter=lfs diff=lfs merge=lfs -text
+# Unreal Engine binary assets
+*.uasset filter=lfs diff=lfs merge=lfs -text
+*.umap filter=lfs diff=lfs merge=lfs -text
+
+# Additional large source assets (optional)
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+*.psd filter=lfs diff=lfs merge=lfs -text

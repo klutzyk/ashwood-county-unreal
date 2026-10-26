@@ -12,3 +12,4 @@
 - After reflected C++ changes, perform a full Editor target build with the editor closed, restart, compile affected Blueprints, and run proportional single-player and multiplayer PIE tests.
 - Never claim runtime, replication, or visual behavior was validated unless that exact test was executed.
 - Do not move or rename established assets without a concrete need; preserve `/Game/_Main/Blueprints/BP_ThirdPersonCharacter` and existing template dependencies.
+- Whenever Blueprint-accessible project APIs are added, removed, renamed, or changed, update `docs/BLUEPRINT_API.md` in the same task.

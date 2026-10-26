@@ -30,6 +30,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void RefreshInteractionTarget();
 
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void StartLocalTargeting();
+
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void SetInteractionEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	bool IsInteractionEnabled() const { return bInteractionEnabled; }
+
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	AActor* GetCurrentTarget() const { return CurrentTarget.Get(); }
 
@@ -93,4 +102,5 @@ private:
 	TWeakObjectPtr<AActor> CurrentTarget;
 	FText CurrentPrompt;
 	double LastServerRequestTime = -DBL_MAX;
+	bool bInteractionEnabled = true;
 };

@@ -10,6 +10,8 @@ class UInputMappingContext;
 class UUserWidget;
 class UACInteractionComponent;
 class UACInteractionPromptWidget;
+class UACHealthComponent;
+class UACHealthWidget;
 
 /**
  *  Basic PlayerController class for a third person game
@@ -45,6 +47,12 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UACInteractionPromptWidget> InteractionPromptWidget;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Health|UI")
+	TSubclassOf<UACHealthWidget> HealthWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UACHealthWidget> HealthWidget;
+
 	/** If true, the player will use UMG touch controls even if not playing on mobile platforms */
 	UPROPERTY(EditAnywhere, Config, Category = "Input|Touch Controls")
 	bool bForceTouchControls = false;
@@ -56,16 +64,19 @@ protected:
 	virtual void SetupInputComponent() override;
 
 	virtual void SetPawn(APawn* InPawn) override;
+	virtual void AcknowledgePossession(APawn* P) override;
 
 	/** Returns true if the player should use UMG touch controls */
 	bool ShouldUseTouchControls() const;
 
 private:
 	void BindInteractionSource(APawn* SourcePawn);
+	void BindHealthSource(APawn* SourcePawn);
 
 	UFUNCTION()
 	void HandleInteractionTargetChanged(AActor* Target, const FText& Prompt);
 
 	TWeakObjectPtr<UACInteractionComponent> BoundInteractionComponent;
+	TWeakObjectPtr<UACHealthComponent> BoundHealthComponent;
 
 };

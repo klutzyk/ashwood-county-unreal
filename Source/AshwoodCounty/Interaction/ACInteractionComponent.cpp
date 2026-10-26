@@ -19,16 +19,7 @@ void UACInteractionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (GetNetMode() != NM_DedicatedServer)
-	{
-		GetWorld()->GetTimerManager().SetTimer(
-			TargetingTimerHandle,
-			this,
-			&UACInteractionComponent::RefreshInteractionTarget,
-			FMath::Max(TraceInterval, 0.02f),
-			true,
-			0.05f);
-	}
+	StartLocalTargeting();
 }
 
 void UACInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -50,7 +41,7 @@ APawn* UACInteractionComponent::GetOwnerPawn() const
 void UACInteractionComponent::RefreshInteractionTarget()
 {
 	APawn* OwnerPawn = GetOwnerPawn();
-	if (!IsValid(OwnerPawn) || !OwnerPawn->IsLocallyControlled())
+	if (!bInteractionEnabled || !IsValid(OwnerPawn) || !OwnerPawn->IsLocallyControlled())
 	{
 		SetCurrentTarget(nullptr, FText::GetEmpty());
 		return;
@@ -59,6 +50,39 @@ void UACInteractionComponent::RefreshInteractionTarget()
 	FText Prompt;
 	AActor* NewTarget = FindLocalTarget(Prompt);
 	SetCurrentTarget(NewTarget, Prompt);
+}
+
+void UACInteractionComponent::StartLocalTargeting()
+{
+	APawn* OwnerPawn = GetOwnerPawn();
+	UWorld* World = GetWorld();
+	if (!bInteractionEnabled || !World || GetNetMode() == NM_DedicatedServer || !IsValid(OwnerPawn) || !OwnerPawn->IsLocallyControlled())
+	{
+		return;
+	}
+
+	if (!World->GetTimerManager().IsTimerActive(TargetingTimerHandle))
+	{
+		World->GetTimerManager().SetTimer(TargetingTimerHandle, this,
+			&UACInteractionComponent::RefreshInteractionTarget,
+			FMath::Max(TraceInterval, 0.02f), true, 0.05f);
+	}
+	RefreshInteractionTarget();
+}
+
+void UACInteractionComponent::SetInteractionEnabled(bool bEnabled)
+{
+	bInteractionEnabled = bEnabled;
+	if (!bInteractionEnabled)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(TargetingTimerHandle);
+		}
+		SetCurrentTarget(nullptr, FText::GetEmpty());
+		return;
+	}
+	StartLocalTargeting();
 }
 
 AActor* UACInteractionComponent::FindLocalTarget(FText& OutPrompt) const
@@ -264,7 +288,7 @@ void UACInteractionComponent::RequestInteraction()
 {
 	APawn* OwnerPawn = GetOwnerPawn();
 	AActor* RequestedTarget = CurrentTarget.Get();
-	if (!OwnerPawn || !OwnerPawn->IsLocallyControlled() || !IsValid(RequestedTarget))
+	if (!bInteractionEnabled || !OwnerPawn || !OwnerPawn->IsLocallyControlled() || !IsValid(RequestedTarget))
 	{
 		return;
 	}
@@ -303,7 +327,7 @@ void UACInteractionComponent::ServerRequestInteraction_Implementation(AActor* Re
 
 bool UACInteractionComponent::ValidateServerInteraction(APawn* InteractingPawn, AActor* RequestedTarget) const
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority() || !IsValid(InteractingPawn) || !IsValid(RequestedTarget))
+	if (!bInteractionEnabled || !GetOwner() || !GetOwner()->HasAuthority() || !IsValid(InteractingPawn) || !IsValid(RequestedTarget))
 	{
 		return false;
 	}

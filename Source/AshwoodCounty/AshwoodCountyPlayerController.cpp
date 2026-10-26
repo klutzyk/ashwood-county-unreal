@@ -10,6 +10,8 @@
 #include "Widgets/Input/SVirtualJoystick.h"
 #include "Interaction/ACInteractionComponent.h"
 #include "UI/ACInteractionPromptWidget.h"
+#include "Health/ACHealthComponent.h"
+#include "UI/ACHealthWidget.h"
 
 void AAshwoodCountyPlayerController::BeginPlay()
 {
@@ -25,7 +27,17 @@ void AAshwoodCountyPlayerController::BeginPlay()
 		}
 	}
 
+	if (IsLocalPlayerController() && HealthWidgetClass && !HealthWidget)
+	{
+		HealthWidget = CreateWidget<UACHealthWidget>(this, HealthWidgetClass);
+		if (HealthWidget)
+		{
+			HealthWidget->AddToPlayerScreen(5);
+		}
+	}
+
 	BindInteractionSource(GetPawn());
+	BindHealthSource(GetPawn());
 
 	// only spawn touch controls on local player controllers
 	if (IsLocalPlayerController() && ShouldUseTouchControls())
@@ -51,6 +63,14 @@ void AAshwoodCountyPlayerController::SetPawn(APawn* InPawn)
 {
 	Super::SetPawn(InPawn);
 	BindInteractionSource(InPawn);
+	BindHealthSource(InPawn);
+}
+
+void AAshwoodCountyPlayerController::AcknowledgePossession(APawn* P)
+{
+	Super::AcknowledgePossession(P);
+	BindInteractionSource(P);
+	BindHealthSource(P);
 }
 
 void AAshwoodCountyPlayerController::BindInteractionSource(APawn* SourcePawn)
@@ -78,9 +98,26 @@ void AAshwoodCountyPlayerController::BindInteractionSource(APawn* SourcePawn)
 
 	if (UACInteractionComponent* InteractionComponent = SourcePawn->FindComponentByClass<UACInteractionComponent>())
 	{
+		InteractionComponent->StartLocalTargeting();
 		BoundInteractionComponent = InteractionComponent;
 		InteractionComponent->OnInteractionTargetChanged.AddUniqueDynamic(this, &AAshwoodCountyPlayerController::HandleInteractionTargetChanged);
 		HandleInteractionTargetChanged(InteractionComponent->GetCurrentTarget(), InteractionComponent->GetCurrentPrompt());
+	}
+}
+
+void AAshwoodCountyPlayerController::BindHealthSource(APawn* SourcePawn)
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	BoundHealthComponent.Reset();
+	UACHealthComponent* NewHealthComponent = SourcePawn ? SourcePawn->FindComponentByClass<UACHealthComponent>() : nullptr;
+	BoundHealthComponent = NewHealthComponent;
+	if (HealthWidget)
+	{
+		HealthWidget->BindToHealthComponent(NewHealthComponent);
 	}
 }
 

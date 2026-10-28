@@ -109,6 +109,7 @@ private:
 	void TryStartAttack();
 	void FinishAttack();
 	void UpdateDirectMovement();
+	void SetAttackFacingEnabled(bool bEnabled);
 	void StopAllBehavior();
 
 	UFUNCTION()

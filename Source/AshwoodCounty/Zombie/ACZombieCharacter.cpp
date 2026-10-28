@@ -155,6 +155,7 @@ void AACZombieCharacter::UpdateAI()
 	if (!CurrentTarget || !ZombieController)
 	{
 		GetWorldTimerManager().ClearTimer(DirectMovementTimer);
+		SetAttackFacingEnabled(false);
 		if (ZombieController)
 		{
 			ZombieController->StopMovement();
@@ -167,10 +168,13 @@ void AACZombieCharacter::UpdateAI()
 	{
 		GetWorldTimerManager().ClearTimer(DirectMovementTimer);
 		ZombieController->StopMovement();
+		SetAttackFacingEnabled(true);
 		TryStartAttack();
 	}
 	else if (!bAttackInProgress)
 	{
+		SetAttackFacingEnabled(false);
+
 		// Once path following has proven unusable, let the fallback own movement;
 		// repeated MoveTo requests would overwrite its requested velocity.
 		if (GetWorldTimerManager().IsTimerActive(DirectMovementTimer))
@@ -224,7 +228,29 @@ void AACZombieCharacter::UpdateDirectMovement()
 
 	const FVector Direction = ToTarget.GetSafeNormal();
 	GetCharacterMovement()->RequestDirectMove(Direction * FMath::Max(MovementSpeed, 0.0f), true);
-	SetActorRotation(Direction.Rotation());
+}
+
+void AACZombieCharacter::SetAttackFacingEnabled(bool bEnabled)
+{
+	UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+	AAIController* ZombieController = Cast<AAIController>(GetController());
+	if (!MovementComponent || !ZombieController)
+	{
+		return;
+	}
+
+	if (bEnabled && IsValid(CurrentTarget))
+	{
+		ZombieController->SetFocus(CurrentTarget, EAIFocusPriority::Gameplay);
+		MovementComponent->bOrientRotationToMovement = false;
+		MovementComponent->bUseControllerDesiredRotation = true;
+	}
+	else
+	{
+		ZombieController->ClearFocus(EAIFocusPriority::Gameplay);
+		MovementComponent->bUseControllerDesiredRotation = false;
+		MovementComponent->bOrientRotationToMovement = true;
+	}
 }
 
 void AACZombieCharacter::TryStartAttack()
@@ -311,6 +337,7 @@ void AACZombieCharacter::StopAllBehavior()
 	GetWorldTimerManager().ClearTimer(AttackImpactTimer);
 	GetWorldTimerManager().ClearTimer(DirectMovementTimer);
 	bAttackInProgress = false;
+	SetAttackFacingEnabled(false);
 	if (AAIController* ZombieController = Cast<AAIController>(GetController()))
 	{
 		ZombieController->StopMovement();

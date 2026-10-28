@@ -13,3 +13,10 @@
 - Never claim runtime, replication, or visual behavior was validated unless that exact test was executed.
 - Do not move or rename established assets without a concrete need; preserve `/Game/_Main/Blueprints/BP_ThirdPersonCharacter` and existing template dependencies.
 - Whenever Blueprint-accessible project APIs are added, removed, renamed, or changed, update `docs/BLUEPRINT_API.md` in the same task.
+- Build designer-facing gameplay, interactions, AI behavior, animation, UI, inventory, weapons, items, building, and similar systems Blueprint-first through editable graphs and assets.
+- Use C++ only for genuinely necessary low-level capabilities, security-sensitive multiplayer authority, performance-critical shared infrastructure, or behavior unavailable in Blueprint; do not add a native gameplay class merely because code generation is easier.
+- Do not present an empty Blueprint child that only exposes inherited C++ functionality as a Blueprint implementation. Every new gameplay feature should contain meaningful, editable Blueprint logic wherever practical.
+- Prefer modular Blueprint Actor Components, Blueprint Interfaces, event dispatchers, functions, macros, and data-driven configuration over oversized Event Graphs.
+- Keep Blueprint multiplayer logic server-authoritative with appropriate Run on Server, Multicast, and RepNotify patterns. Cosmetic graphs must not become alternate authority paths.
+- Avoid unnecessary Blueprint Event Tick, polling, world-wide searches, and other expensive graph operations.
+- Preserve existing working native foundations; Blueprint-first development does not require rewriting stable C++ systems.

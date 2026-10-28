@@ -14,3 +14,7 @@ Saved
 *.xcworkspace
 # Generated Visual Studio solution files
 *.slnx
+
+# Python-generated caches
+__pycache__/
+*.py[cod]

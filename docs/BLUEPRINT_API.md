@@ -2,6 +2,17 @@
 
 This is the searchable reference for Ashwood County's project-specific native gameplay API. Names below match the labels shown in Blueprint node search. `Authority only` means the node must run in the server world; calling it on a client does nothing or is rejected. Cosmetic events are for animation, audio, UI, and VFX, not authoritative state changes.
 
+## Blueprint implementation ownership audit
+
+Audited with PinWright graph inspection and BPIR decompilation on 2026-10-26. A configured Blueprint child is not counted as a Blueprint implementation unless its graph contains connected behavior nodes.
+
+- `/Game/_Main/Blueprints/BP_ThirdPersonCharacter` contains real Blueprint logic: four touch-interface event chains route `Secondary Thumbstick` to `Do Look`, `Primary Thumbstick` to `Do Move`, and touch jump start/end to the inherited jump functions. Health, death, melee authority, interaction requests, input setup, and UI binding remain native.
+- `/Game/_Main/Zombies/Blueprints/BP_ACZombie` originally contained only disabled template events and an empty construction script. Zombie targeting, chasing, attacks, damage, death, and replication remain native. Its Blueprint-owned cosmetic hit reaction is documented under **Zombie AI** below.
+- `/Game/_Main/Interaction/Blueprints/BP_ACDoor` and `BP_ACSupplyCrate` contain no active graph behavior. Their interaction validation, replicated state, and placeholder motion are native; their mesh/default configuration is Blueprint-authored.
+- `/Game/_Main/Health/Blueprints/BP_ACDamageVolume` contains no active graph behavior. Overlap damage and timer authority are native; size, damage defaults, and presentation components are Blueprint-configured.
+- `/Game/_Main/Health/UI/WBP_HealthDisplay` and `/Game/_Main/Widgets/WBP_InteractionPrompt` contain no active graph behavior. Their widget trees are designer-authored, while native widget bases currently perform binding, text/progress updates, and visibility changes.
+- `ACInteractableInterface` is implemented natively by the established door and crate classes, but unrelated Actor Blueprints can implement its three interface functions with genuine Blueprint graphs.
+
 ## Blueprint basics
 
 - To create a child of a native class, choose **Content Browser > Add > Blueprint Class > All Classes**, search for the class without its C++ prefix (for example `ACZombieCharacter`), and save the asset under `/Game/_Main/`.
@@ -269,6 +280,24 @@ Existing Blueprint child: `/Game/_Main/Zombies/Blueprints/BP_ACZombie`
 | Damage Received | Implementable event | Hit reaction hook. Context can be null on replication-only client updates. |
 | Zombie Died | Implementable event | Death animation, sound, and VFX hook. Native code has already stopped AI, attacks, and movement. |
 
+`BP_ACZombie` now contains a real, editable cosmetic implementation of **Damage Received** in its Event Graph:
+
+- **Hit Reaction Scale Multiplier** (`Vector`, editable, category **Zombie > Cosmetic Feedback**, default `1.12, 1.12, 0.88`) controls the squash/stretch amount.
+- **Hit Reaction Duration** (`Float`, editable, category **Zombie > Cosmetic Feedback**, default `0.12 s`) controls how long the pulse lasts.
+- **Base Mesh World Scale** (`Vector`, private runtime cache) is captured from the Mesh on BeginPlay, so replacement meshes return to their own starting scale.
+- **Damage Received** multiplies the cached scale, applies it to the Mesh, waits with **Retriggerable Delay**, and restores the cached scale. The delay retriggers cleanly if hits arrive close together.
+
+The graph has separate comment boxes for initialization and cosmetic reaction. It changes only the local skeletal-mesh presentation; capsule collision, health mutation, hit validation, and death remain authoritative native behavior. Replicated health changes invoke the same presentation event on clients, where damage context pins may be null.
+
+`BP_ACZombie` also owns editable animation presentation:
+
+- **Attack Started** calls the Blueprint function **Play Attack Animation**, which plays `/Game/_Main/Zombies/Animations/AM_ACZombie_Attack` on the Animation Blueprint's `DefaultSlot`.
+- **Zombie Died** calls **Play Death Animation**, which plays `/Game/_Main/Zombies/Animations/AM_ACZombie_Death`; that montage holds its final pose until native corpse cleanup.
+- `/Game/_Main/Zombies/Animations/ABP_ACZombie` contains a real `Idle`/`Walk`/`Run` state machine. Its Event Graph sets **Ground Speed** from horizontal velocity only. **Moving Threshold** (default `3`) and **Run Threshold** (default `320`) are editable Animation Blueprint defaults.
+- `AS_ACZombie_Walk` and `AS_ACZombie_Run` are project-owned, force-root-locked copies of the imported locomotion clips. Gameplay movement and collision remain on the replicated Character and capsule.
+
+The Zombie 8 mesh is configured at unit component scale with relative location `(0, 0, -107)` and rotation `(0, -90, 0)`. Do not copy the Fab skeletal mesh's tiny reference-pose bounds into a `100x` component scale: its animation root already supplies the required import scale, and multiplying the component again makes evaluated poses oversized.
+
 The server iterates player controllers only on the decision timer, selects the nearest living pawn in range, and primarily uses `AIController.Move To Actor`. Rejected or stalled path requests fall back to collision-respecting direct Character movement for a clear straight path. Use a built NavMesh for obstacle-aware levels; the fallback does not route around walls. Dead players are rejected and respawned pawns can be acquired on a later decision pass.
 
 ## Combat
@@ -335,7 +364,7 @@ The current slice intentionally has no inventory, weapon hierarchy, ammunition, 
 
 1. Override `Attack Started` for a montage, sound, or windup VFX.
 2. Override `Attack Impact` for contact/miss presentation. Do not apply gameplay damage there; native code already performs the validated server hit.
-3. Override `Damage Received` for hit reactions.
+3. Edit the existing `Damage Received` scale-pulse nodes in `BP_ACZombie`, or replace them in a child variant. Tune **Hit Reaction Scale Multiplier** and **Hit Reaction Duration** in Class Defaults; never apply damage from this cosmetic event.
 4. Override `Zombie Died` for a death montage, dissolve, or non-networked cosmetic ragdoll. Native code disables behavior and later cleans up using **Corpse Cleanup Delay**.
 5. Animation-notify-driven authoritative timing is an extension point via `Commit Attack Impact`, but the current automatic windup remains active; switching timing modes is not yet exposed without a small C++ change.
 

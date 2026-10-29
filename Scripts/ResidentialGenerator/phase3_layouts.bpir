@@ -1,0 +1,578 @@
+entry function RoomIsValid(struct<ST_HouseRoom> Room) -> bool {
+    %data = break<ST_HouseRoom>($Room)
+    %min = call BreakVector(InVec: %data.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %data.Size_6_A050281547D25A85B4448B81EF60035D)
+    %maxX = call Add_DoubleDouble(A: %min.X, B: %size.X)
+    %maxY = call Add_DoubleDouble(A: %min.Y, B: %size.Y)
+    %inMinX = call InRange_FloatFloat(Value: %min.X, Min: 0, Max: $W, InclusiveMin: true, InclusiveMax: true)
+    %inMinY = call InRange_FloatFloat(Value: %min.Y, Min: 0, Max: $L, InclusiveMin: true, InclusiveMax: true)
+    %inMaxX = call InRange_FloatFloat(Value: %maxX, Min: 0, Max: $W, InclusiveMin: true, InclusiveMax: true)
+    %inMaxY = call InRange_FloatFloat(Value: %maxY, Min: 0, Max: $L, InclusiveMin: true, InclusiveMax: true)
+    %mins = call BooleanAND(A: %inMinX, B: %inMinY)
+    %maxs = call BooleanAND(A: %inMaxX, B: %inMaxY)
+    %inside = call BooleanAND(A: %mins, B: %maxs)
+    branch(%inside) [true -> @kind, false -> @bad]
+@bad:
+    return false
+@kind:
+    %hall = call EqualEqual_NameName(A: %data.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Hallway")
+    branch(%hall) [true -> @public, false -> @living]
+@living:
+    %isLiving = call EqualEqual_NameName(A: %data.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Living")
+    branch(%isLiving) [true -> @public, false -> @livingKitchen]
+@livingKitchen:
+    %isLivingKitchen = call EqualEqual_NameName(A: %data.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "LivingKitchen")
+    branch(%isLivingKitchen) [true -> @public, false -> @livingDining]
+@livingDining:
+    %isLivingDining = call EqualEqual_NameName(A: %data.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "LivingDining")
+    branch(%isLivingDining) [true -> @public, false -> @familyCombined]
+@familyCombined:
+    %isFamilyCombined = call EqualEqual_NameName(A: %data.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "LivingDiningKitchen")
+    branch(%isFamilyCombined) [true -> @public, false -> @openPlan]
+@openPlan:
+    %isOpenPlan = call EqualEqual_NameName(A: %data.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "OpenPlan")
+    branch(%isOpenPlan) [true -> @public, false -> @kitchen]
+@kitchen:
+    %isKitchen = call EqualEqual_NameName(A: %data.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Kitchen")
+    branch(%isKitchen) [true -> @public, false -> @private]
+@public:
+    return true
+@private:
+    %clearW = call Subtract_DoubleDouble(A: %size.X, B: 45)
+    %edgeFront = call EqualEqual_DoubleDouble(A: %min.Y, B: 0)
+    %edgeRear = call EqualEqual_DoubleDouble(A: %maxY, B: $L)
+    %frontInset = select(cond: %edgeFront, true: 15.0, false: 0.0)
+    %rearInset = select(cond: %edgeRear, true: 15.0, false: 0.0)
+    %endInsets = call Add_DoubleDouble(A: %frontInset, B: %rearInset)
+    %depthInsets = call Add_DoubleDouble(A: %endInsets, B: 30)
+    %clearD = call Subtract_DoubleDouble(A: %size.Y, B: %depthInsets)
+    %minCM = call Multiply_DoubleDouble(A: $MinRoomMetres, B: 100)
+    %maxCM = call Multiply_DoubleDouble(A: $MaxRoomMetres, B: 100)
+    %validW = call InRange_FloatFloat(Value: %clearW, Min: %minCM, Max: %maxCM, InclusiveMin: true, InclusiveMax: true)
+    %validD = call InRange_FloatFloat(Value: %clearD, Min: %minCM, Max: %maxCM, InclusiveMin: true, InclusiveMax: true)
+    %sizesOK = call BooleanAND(A: %validW, B: %validD)
+    %door = call BreakVector(InVec: %data.DoorCenter_8_16660F964D81C9BEF3895C9A21215F87)
+    %leftWidth = call Multiply_DoubleDouble(A: $PlanLeftWidthUnits, B: 50)
+    %rightDoorX = call Add_DoubleDouble(A: %leftWidth, B: 200)
+    %leftRoom = call EqualEqual_DoubleDouble(A: %min.X, B: 0)
+    %expectedDoorX = select(cond: %leftRoom, true: %leftWidth, false: %rightDoorX)
+    %doorXOK = call EqualEqual_DoubleDouble(A: %door.X, B: %expectedDoorX)
+    %doorMinY = call Add_DoubleDouble(A: %min.Y, B: 150)
+    %doorMaxY = call Subtract_DoubleDouble(A: %maxY, B: 150)
+    %doorYOK = call InRange_FloatFloat(Value: %door.Y, Min: %doorMinY, Max: %doorMaxY, InclusiveMin: true, InclusiveMax: true)
+    %doorOK = call BooleanAND(A: %doorXOK, B: %doorYOK)
+    %allOK = call BooleanAND(A: %sizesOK, B: %doorOK)
+    return %allOK
+}
+
+entry function ValidatePendingPlan() {
+    set PlanPassed = true
+    set PlanArea = 0
+    %count = call Array_Length(TargetArray: $PendingRooms)
+    %countOK = call EqualEqual_IntInt(A: %count, B: $ExpectedRoomEntries)
+    branch(%countOK) [true -> @iterate, false -> @badCount]
+@badCount:
+    set PlanPassed = false
+    return
+@iterate:
+    %last = call Subtract_IntInt(A: %count, B: 1)
+    %rooms = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @room, Completed -> @area]
+@room:
+    %item = call Array_Get(TargetArray: $PendingRooms, Index: %rooms.Index)
+    %valid = call RoomIsValid(Room: %item.Item)
+    %keepValid = call BooleanAND(A: $PlanPassed, B: %valid)
+    set PlanPassed = %keepValid
+    %data = break<ST_HouseRoom>(%item.Item)
+    %size = call BreakVector(InVec: %data.Size_6_A050281547D25A85B4448B81EF60035D)
+    %roomArea = call Multiply_DoubleDouble(A: %size.X, B: %size.Y)
+    %newArea = call Add_DoubleDouble(A: $PlanArea, B: %roomArea)
+    set PlanArea = %newArea
+    %next = call Add_IntInt(A: %rooms.Index, B: 1)
+    %others = macro ForLoop(FirstIndex: %next, LastIndex: %last) [LoopBody -> @overlap]
+@overlap:
+    %other = call Array_Get(TargetArray: $PendingRooms, Index: %others.Index)
+    %touches = call RoomsOverlap(A: %item.Item, B: %other.Item)
+    %separate = call Not_PreBool(A: %touches)
+    %keepSeparate = call BooleanAND(A: $PlanPassed, B: %separate)
+    set PlanPassed = %keepSeparate
+    end
+@area:
+    %targetArea = call Multiply_DoubleDouble(A: $W, B: $L)
+    %areaOK = call EqualEqual_DoubleDouble(A: $PlanArea, B: %targetArea)
+    %final = call BooleanAND(A: $PlanPassed, B: %areaOK)
+    set PlanPassed = %final
+    return
+}
+
+entry function PickPrivateRoomType(bool LeftWing, int Index, bool IncludeKitchen) -> name {
+    %first = call EqualEqual_IntInt(A: $Index, B: 0)
+    %leftFirst = call BooleanAND(A: $LeftWing, B: %first)
+    %kitchen = call BooleanAND(A: $IncludeKitchen, B: %leftFirst)
+    branch(%kitchen) [true -> @kitchen, false -> @bath]
+@kitchen:
+    return "Kitchen"
+@bath:
+    %notLeft = call Not_PreBool(A: $LeftWing)
+    %rightFirst = call BooleanAND(A: %notLeft, B: %first)
+    branch(%rightFirst) [true -> @bathroom, false -> @bedroom]
+@bathroom:
+    return "Bathroom"
+@bedroom:
+    return "Bedroom"
+}
+
+entry function PlanWingRegion(bool LeftWing, int Count, float StartY, float RegionDepth, bool IncludeKitchen) {
+    %regionFifty = call Divide_DoubleDouble(A: $RegionDepth, B: 50)
+    %regionUnits = call FTrunc(A: %regionFifty)
+    set PlanRemainingUnits = %regionUnits
+    set PlanCursorUnits = 0
+    %last = call Subtract_IntInt(A: $Count, B: 1)
+    %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @room, Completed -> @done]
+@room:
+    %kind = call PickPrivateRoomType(LeftWing: $LeftWing, Index: %loop.Index, IncludeKitchen: $IncludeKitchen)
+    %after = call Subtract_IntInt(A: %last, B: %loop.Index)
+    %afterMax = call Multiply_IntInt(A: %after, B: $PlanMaxUnits)
+    %lowRaw = call Subtract_IntInt(A: $PlanRemainingUnits, B: %afterMax)
+    %low = call Max(A: $PlanMinUnits, B: %lowRaw)
+    %afterMin = call Multiply_IntInt(A: %after, B: $PlanMinUnits)
+    %highRaw = call Subtract_IntInt(A: $PlanRemainingUnits, B: %afterMin)
+    %high = call Min(A: $PlanMaxUnits, B: %highRaw)
+    %picked = call ChooseRoomDepth(Low: %low, High: %high, Kind: %kind)
+    set PlanPickedUnits = %picked
+    %leftWidth = call Multiply_DoubleDouble(A: $PlanLeftWidthUnits, B: 50)
+    %rightX = call Add_DoubleDouble(A: %leftWidth, B: 200)
+    %x = select(cond: $LeftWing, true: 0.0, false: %rightX)
+    %cursorCM = call Multiply_DoubleDouble(A: $PlanCursorUnits, B: 50)
+    %depthCM = call Multiply_DoubleDouble(A: %picked, B: 50)
+    %fromStart = call Add_DoubleDouble(A: $StartY, B: %cursorCM)
+    %usedEnd = call Add_DoubleDouble(A: %cursorCM, B: %depthCM)
+    %reverseOffset = call Subtract_DoubleDouble(A: $RegionDepth, B: %usedEnd)
+    %fromRear = call Add_DoubleDouble(A: $StartY, B: %reverseOffset)
+    %y = select(cond: $EntranceAtRear, true: %fromRear, false: %fromStart)
+    %houseWidth = call Multiply_DoubleDouble(A: $WidthMetres, B: 100)
+    %rightWidth = call Subtract_DoubleDouble(A: %houseWidth, B: %rightX)
+    %width = select(cond: $LeftWing, true: %leftWidth, false: %rightWidth)
+    %doorX = select(cond: $LeftWing, true: %leftWidth, false: %rightX)
+    %halfDepth = call Divide_DoubleDouble(A: %depthCM, B: 2)
+    %doorY = call Add_DoubleDouble(A: %y, B: %halfDepth)
+    call AddPlannedRoom(Kind: %kind, X: %x, Y: %y, Width: %width, Depth: %depthCM, DoorX: %doorX, DoorY: %doorY)
+    %remain = call Subtract_IntInt(A: $PlanRemainingUnits, B: %picked)
+    set PlanRemainingUnits = %remain
+    %cursor = call Add_IntInt(A: $PlanCursorUnits, B: %picked)
+    set PlanCursorUnits = %cursor
+    end
+@done:
+    return
+}
+
+entry function PlanTwoWingPrivate(int PrivateCount, float StartY, float RegionDepth, bool IncludeKitchen) -> bool {
+    %widthUnits = call Multiply_IntInt(A: $WidthMetres, B: 2)
+    %available = call Subtract_IntInt(A: %widthUnits, B: 4)
+    %leftLoRaw = call Subtract_IntInt(A: %available, B: $PlanMaxUnits)
+    %leftHiRaw = call Subtract_IntInt(A: %available, B: $PlanMinUnits)
+    %leftLo = call Max(A: $PlanMinUnits, B: %leftLoRaw)
+    %leftHi = call Min(A: $PlanMaxUnits, B: %leftHiRaw)
+    %widthFits = call LessEqual_IntInt(A: %leftLo, B: %leftHi)
+    branch(%widthFits) [true -> @counts, false -> @fail]
+@counts:
+    %base = call Divide_IntInt(A: $PrivateCount, B: 2)
+    %twice = call Multiply_IntInt(A: %base, B: 2)
+    %odd = call Greater_IntInt(A: $PrivateCount, B: %twice)
+    %coin = call DrawInt(Low: 0, High: 1)
+    %coinLeft = call EqualEqual_IntInt(A: %coin, B: 0)
+    %giveLeft = call BooleanAND(A: %odd, B: %coinLeft)
+    %extraLeft = select(cond: %giveLeft, true: 1, false: 0)
+    %leftCount = call Add_IntInt(A: %base, B: %extraLeft)
+    %rightCount = call Subtract_IntInt(A: $PrivateCount, B: %leftCount)
+    %leftPositive = call Greater_IntInt(A: %leftCount, B: 0)
+    %rightPositive = call Greater_IntInt(A: %rightCount, B: 0)
+    %countsPositive = call BooleanAND(A: %leftPositive, B: %rightPositive)
+    branch(%countsPositive) [true -> @depth, false -> @fail]
+@depth:
+    %regionFifty = call Divide_DoubleDouble(A: $RegionDepth, B: 50)
+    %regionUnits = call FTrunc(A: %regionFifty)
+    %leftMin = call Multiply_IntInt(A: %leftCount, B: $PlanMinUnits)
+    %leftMax = call Multiply_IntInt(A: %leftCount, B: $PlanMaxUnits)
+    %rightMin = call Multiply_IntInt(A: %rightCount, B: $PlanMinUnits)
+    %rightMax = call Multiply_IntInt(A: %rightCount, B: $PlanMaxUnits)
+    %leftFits = call InRange_IntInt(Value: %regionUnits, Min: %leftMin, Max: %leftMax, InclusiveMin: true, InclusiveMax: true)
+    %rightFits = call InRange_IntInt(Value: %regionUnits, Min: %rightMin, Max: %rightMax, InclusiveMin: true, InclusiveMax: true)
+    %depthFits = call BooleanAND(A: %leftFits, B: %rightFits)
+    branch(%depthFits) [true -> @build, false -> @fail]
+@build:
+    %leftWidthUnits = call DrawInt(Low: %leftLo, High: %leftHi)
+    set PlanLeftWidthUnits = %leftWidthUnits
+    set PlanLeftCount = %leftCount
+    set PlanRightCount = %rightCount
+    set PlanRegionStart = $StartY
+    set PlanRegionDepth = $RegionDepth
+    set PlanIncludeKitchen = $IncludeKitchen
+    call PlanWingRegion(LeftWing: true, Count: %leftCount, StartY: $StartY, RegionDepth: $RegionDepth, IncludeKitchen: $IncludeKitchen)
+    call PlanWingRegion(LeftWing: false, Count: %rightCount, StartY: $StartY, RegionDepth: $RegionDepth, IncludeKitchen: $IncludeKitchen)
+    %leftWidth = call Multiply_DoubleDouble(A: %leftWidthUnits, B: 50)
+    %hallCenterX = call Add_DoubleDouble(A: %leftWidth, B: 100)
+    %regionEnd = call Add_DoubleDouble(A: $StartY, B: $RegionDepth)
+    %hallDoorY = select(cond: $EntranceAtRear, true: %regionEnd, false: $StartY)
+    call AddPlannedRoom(Kind: "Hallway", X: %leftWidth, Y: $StartY, Width: 200, Depth: $RegionDepth, DoorX: %hallCenterX, DoorY: %hallDoorY)
+    set SideWidth = %leftWidth
+    return true
+@fail:
+    return false
+}
+
+entry function PlanOpenPrivate(int Count, float StartY, float RegionDepth) {
+    %regionFifty = call Divide_DoubleDouble(A: $RegionDepth, B: 50)
+    %regionUnits = call FTrunc(A: %regionFifty)
+    set PlanRemainingUnits = %regionUnits
+    set PlanCursorUnits = 0
+    %last = call Subtract_IntInt(A: $Count, B: 1)
+    %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @room, Completed -> @done]
+@room:
+    %first = call EqualEqual_IntInt(A: %loop.Index, B: 0)
+    %kind = select(cond: %first, true: "Bathroom", false: "Bedroom")
+    %after = call Subtract_IntInt(A: %last, B: %loop.Index)
+    %afterMax = call Multiply_IntInt(A: %after, B: $PlanMaxUnits)
+    %lowRaw = call Subtract_IntInt(A: $PlanRemainingUnits, B: %afterMax)
+    %low = call Max(A: $PlanMinUnits, B: %lowRaw)
+    %afterMin = call Multiply_IntInt(A: %after, B: $PlanMinUnits)
+    %highRaw = call Subtract_IntInt(A: $PlanRemainingUnits, B: %afterMin)
+    %high = call Min(A: $PlanMaxUnits, B: %highRaw)
+    %picked = call ChooseRoomDepth(Low: %low, High: %high, Kind: %kind)
+    %cursorCM = call Multiply_DoubleDouble(A: $PlanCursorUnits, B: 50)
+    %depthCM = call Multiply_DoubleDouble(A: %picked, B: 50)
+    %fromStart = call Add_DoubleDouble(A: $StartY, B: %cursorCM)
+    %usedEnd = call Add_DoubleDouble(A: %cursorCM, B: %depthCM)
+    %reverseOffset = call Subtract_DoubleDouble(A: $RegionDepth, B: %usedEnd)
+    %fromRear = call Add_DoubleDouble(A: $StartY, B: %reverseOffset)
+    %y = select(cond: $EntranceAtRear, true: %fromRear, false: %fromStart)
+    %roomX = call Add_DoubleDouble(A: $OpenPlanHallX, B: 200)
+    %roomWidth = call Subtract_DoubleDouble(A: $W, B: %roomX)
+    %halfDepth = call Divide_DoubleDouble(A: %depthCM, B: 2)
+    %doorY = call Add_DoubleDouble(A: %y, B: %halfDepth)
+    call AddPlannedRoom(Kind: %kind, X: %roomX, Y: %y, Width: %roomWidth, Depth: %depthCM, DoorX: %roomX, DoorY: %doorY)
+    %remain = call Subtract_IntInt(A: $PlanRemainingUnits, B: %picked)
+    set PlanRemainingUnits = %remain
+    %cursor = call Add_IntInt(A: $PlanCursorUnits, B: %picked)
+    set PlanCursorUnits = %cursor
+    end
+@done:
+    return
+}
+
+entry function ValidateAndCommit(string FailureMessage) {
+    call ValidatePendingPlan()
+    branch($PlanPassed) [true -> @commit, false -> @fail]
+@commit:
+    set Rooms = $PendingRooms
+    set LayoutValid = true
+    return
+@fail:
+    set GenerationStatus = $FailureMessage
+    return
+}
+
+entry function PlanCentralHallway() {
+    call Array_Clear(TargetArray: $CandidateCounts)
+    %last = call Subtract_IntInt(A: $RoomCount, B: 1)
+    %loop = macro ForLoop(FirstIndex: 1, LastIndex: %last) [LoopBody -> @candidate, Completed -> @choose]
+@candidate:
+    %right = call Subtract_IntInt(A: $RoomCount, B: %loop.Index)
+    %totalUnits = call Multiply_IntInt(A: $LengthMetres, B: 2)
+    %leftMin = call Multiply_IntInt(A: %loop.Index, B: $PlanMinUnits)
+    %leftMax = call Multiply_IntInt(A: %loop.Index, B: $PlanMaxUnits)
+    %rightMin = call Multiply_IntInt(A: %right, B: $PlanMinUnits)
+    %rightMax = call Multiply_IntInt(A: %right, B: $PlanMaxUnits)
+    %leftFits = call InRange_IntInt(Value: %totalUnits, Min: %leftMin, Max: %leftMax, InclusiveMin: true, InclusiveMax: true)
+    %rightFits = call InRange_IntInt(Value: %totalUnits, Min: %rightMin, Max: %rightMax, InclusiveMin: true, InclusiveMax: true)
+    %fits = call BooleanAND(A: %leftFits, B: %rightFits)
+    branch(%fits) [true -> @add, false -> @skip]
+@add:
+    call Array_Add(TargetArray: $CandidateCounts, NewItem: %loop.Index)
+    end
+@skip:
+    end
+@choose:
+    %candidateCount = call Array_Length(TargetArray: $CandidateCounts)
+    %has = call Greater_IntInt(A: %candidateCount, B: 0)
+    branch(%has) [true -> @width, false -> @fail]
+@width:
+    %widthUnits = call Multiply_IntInt(A: $WidthMetres, B: 2)
+    %available = call Subtract_IntInt(A: %widthUnits, B: 4)
+    %leftLoRaw = call Subtract_IntInt(A: %available, B: $PlanMaxUnits)
+    %leftHiRaw = call Subtract_IntInt(A: %available, B: $PlanMinUnits)
+    %leftLo = call Max(A: $PlanMinUnits, B: %leftLoRaw)
+    %leftHi = call Min(A: $PlanMaxUnits, B: %leftHiRaw)
+    %widthFits = call LessEqual_IntInt(A: %leftLo, B: %leftHi)
+    branch(%widthFits) [true -> @build, false -> @fail]
+@build:
+    %candidateLast = call Subtract_IntInt(A: %candidateCount, B: 1)
+    %pick = call DrawInt(Low: 0, High: %candidateLast)
+    %selected = call Array_Get(TargetArray: $CandidateCounts, Index: %pick)
+    set PlanLeftCount = %selected.Item
+    %rightCount = call Subtract_IntInt(A: $RoomCount, B: %selected.Item)
+    set PlanRightCount = %rightCount
+    %leftWidthUnits = call DrawInt(Low: %leftLo, High: %leftHi)
+    set PlanLeftWidthUnits = %leftWidthUnits
+    call Array_Clear(TargetArray: $PendingRooms)
+    call PlanWing(LeftWing: true, Count: $PlanLeftCount)
+    call PlanWing(LeftWing: false, Count: $PlanRightCount)
+    %leftWidth = call Multiply_DoubleDouble(A: %leftWidthUnits, B: 50)
+    %hallCenter = call Add_DoubleDouble(A: %leftWidth, B: 100)
+    %entranceY = select(cond: $EntranceAtRear, true: $L, false: 0.0)
+    call AddPlannedRoom(Kind: "Hallway", X: %leftWidth, Y: 0, Width: 200, Depth: $L, DoorX: %hallCenter, DoorY: %entranceY)
+    set ExpectedRoomEntries = $RoomCount
+    %expected = call Add_IntInt(A: $ExpectedRoomEntries, B: 1)
+    set ExpectedRoomEntries = %expected
+    set SideWidth = %leftWidth
+    set EntranceCenterX = %hallCenter
+    set FrontZoneDepth = 0
+    set FrontSplitX = 0
+    set OpenPlanHallX = 0
+    set PlanRegionStart = 0
+    set PlanRegionDepth = $L
+    call ValidateAndCommit(FailureMessage: "Cannot generate Central Hallway: candidate failed bounds, doorway, overlap or coverage validation. Previous building retained.")
+    return
+@fail:
+    set GenerationStatus = "Cannot generate Central Hallway: dimensions cannot fit two room wings and a 2m corridor within the requested room limits. Previous building retained."
+    return
+}
+
+entry function PlanLivingEntrance() {
+    set FrontZoneDepth = 500
+    %publicY = select(cond: $EntranceAtRear, true: $L, false: 500.0)
+    %publicStart = call Subtract_DoubleDouble(A: %publicY, B: 500)
+    %regionStart = select(cond: $EntranceAtRear, true: 0.0, false: 500.0)
+    %regionDepth = call Subtract_DoubleDouble(A: $L, B: 500)
+    %enoughDepth = call Greater_DoubleDouble(A: %regionDepth, B: 0)
+    branch(%enoughDepth) [true -> @build, false -> @fail]
+@build:
+    call Array_Clear(TargetArray: $PendingRooms)
+    %three = call EqualEqual_IntInt(A: $RoomCount, B: 3)
+    %publicKind = select(cond: %three, true: "LivingKitchen", false: "Living")
+    %entranceY = select(cond: $EntranceAtRear, true: $L, false: 0.0)
+    %houseCenter = call Divide_DoubleDouble(A: $W, B: 2)
+    call AddPlannedRoom(Kind: %publicKind, X: 0, Y: %publicStart, Width: $W, Depth: 500, DoorX: %houseCenter, DoorY: %entranceY)
+    %privateCount = call Subtract_IntInt(A: $RoomCount, B: 1)
+    %includeKitchen = call Greater_IntInt(A: $RoomCount, B: 3)
+    %privateOK = call PlanTwoWingPrivate(PrivateCount: %privateCount, StartY: %regionStart, RegionDepth: %regionDepth, IncludeKitchen: %includeKitchen)
+    branch(%privateOK) [true -> @finish, false -> @fail]
+@finish:
+    %hallCenter = call Add_DoubleDouble(A: $SideWidth, B: 100)
+    set EntranceCenterX = %hallCenter
+    set FrontSplitX = 0
+    set OpenPlanHallX = 0
+    %expected = call Add_IntInt(A: $RoomCount, B: 1)
+    set ExpectedRoomEntries = %expected
+    call ValidateAndCommit(FailureMessage: "Cannot generate Living Room Entrance: the rear private wing cannot fit the requested rooms and short corridor. Increase length or relax room limits. Previous building retained.")
+    return
+@fail:
+    set GenerationStatus = "Cannot generate Living Room Entrance: reserve at least 5m for the entrance living room plus enough rear depth for private rooms. Previous building retained."
+    return
+}
+
+entry function PlanFamilySuburban() {
+    set FrontZoneDepth = 500
+    %publicY = select(cond: $EntranceAtRear, true: $L, false: 500.0)
+    %publicStart = call Subtract_DoubleDouble(A: %publicY, B: 500)
+    %regionStart = select(cond: $EntranceAtRear, true: 0.0, false: 500.0)
+    %regionDepth = call Subtract_DoubleDouble(A: $L, B: 500)
+    %enoughDepth = call Greater_DoubleDouble(A: %regionDepth, B: 0)
+    branch(%enoughDepth) [true -> @count, false -> @fail]
+@count:
+    call Array_Clear(TargetArray: $PendingRooms)
+    %three = call EqualEqual_IntInt(A: $RoomCount, B: 3)
+    branch(%three) [true -> @compact, false -> @split]
+@compact:
+    %entranceYCompact = select(cond: $EntranceAtRear, true: $L, false: 0.0)
+    %centerCompact = call Divide_DoubleDouble(A: $W, B: 2)
+    call AddPlannedRoom(Kind: "LivingDiningKitchen", X: 0, Y: %publicStart, Width: $W, Depth: 500, DoorX: %centerCompact, DoorY: %entranceYCompact)
+    set FrontSplitX = 0
+    %privateCompact = call Subtract_IntInt(A: $RoomCount, B: 1)
+    %compactOK = call PlanTwoWingPrivate(PrivateCount: %privateCompact, StartY: %regionStart, RegionDepth: %regionDepth, IncludeKitchen: false)
+    branch(%compactOK) [true -> @compactFinish, false -> @fail]
+@compactFinish:
+    %hallCenterCompact = call Add_DoubleDouble(A: $SideWidth, B: 100)
+    set EntranceCenterX = %hallCenterCompact
+    exec -> @finish
+@split:
+    %widthUnits = call Multiply_IntInt(A: $WidthMetres, B: 2)
+    %loFloat = call Multiply_DoubleDouble(A: %widthUnits, B: 0.55)
+    %hiFloat = call Multiply_DoubleDouble(A: %widthUnits, B: 0.65)
+    %splitLo = call FTrunc(A: %loFloat)
+    %splitHi = call FTrunc(A: %hiFloat)
+    %splitUnits = call DrawInt(Low: %splitLo, High: %splitHi)
+    %splitX = call Multiply_DoubleDouble(A: %splitUnits, B: 50)
+    set FrontSplitX = %splitX
+    %rightWidth = call Subtract_DoubleDouble(A: $W, B: %splitX)
+    %entranceCenter = call Divide_DoubleDouble(A: %splitX, B: 2)
+    set EntranceCenterX = %entranceCenter
+    %entranceYSplit = select(cond: $EntranceAtRear, true: $L, false: 0.0)
+    call AddPlannedRoom(Kind: "LivingDining", X: 0, Y: %publicStart, Width: %splitX, Depth: 500, DoorX: %entranceCenter, DoorY: %entranceYSplit)
+    call AddPlannedRoom(Kind: "Kitchen", X: %splitX, Y: %publicStart, Width: %rightWidth, Depth: 500, DoorX: %splitX, DoorY: %publicY)
+    %private = call Subtract_IntInt(A: $RoomCount, B: 2)
+    %privateOK = call PlanTwoWingPrivate(PrivateCount: %private, StartY: %regionStart, RegionDepth: %regionDepth, IncludeKitchen: false)
+    branch(%privateOK) [true -> @finish, false -> @fail]
+@finish:
+    set OpenPlanHallX = 0
+    %expected = call Add_IntInt(A: $RoomCount, B: 1)
+    set ExpectedRoomEntries = %expected
+    call ValidateAndCommit(FailureMessage: "Cannot generate Family Suburban: the public front zone or grouped private wing failed layout validation. Previous building retained.")
+    return
+@fail:
+    set GenerationStatus = "Cannot generate Family Suburban: reserve 5m for living/dining/kitchen and enough rear depth for the grouped bedrooms and bathroom. Previous building retained."
+    return
+}
+
+entry function PlanOpenPlan() {
+    set FrontZoneDepth = 500
+    %regionDepth = call Subtract_DoubleDouble(A: $L, B: 500)
+    %positive = call Greater_DoubleDouble(A: %regionDepth, B: 0)
+    branch(%positive) [true -> @width, false -> @fail]
+@width:
+    %widthUnits = call Multiply_IntInt(A: $WidthMetres, B: 2)
+    %privateHighRaw = call Subtract_IntInt(A: %widthUnits, B: 10)
+    %privateHigh = call Min(A: $PlanMaxUnits, B: %privateHighRaw)
+    %widthFits = call LessEqual_IntInt(A: $PlanMinUnits, B: %privateHigh)
+    branch(%widthFits) [true -> @depth, false -> @fail]
+@depth:
+    %privateCount = call Subtract_IntInt(A: $RoomCount, B: 1)
+    %regionFifty = call Divide_DoubleDouble(A: %regionDepth, B: 50)
+    %regionUnits = call FTrunc(A: %regionFifty)
+    %minNeeded = call Multiply_IntInt(A: %privateCount, B: $PlanMinUnits)
+    %maxAllowed = call Multiply_IntInt(A: %privateCount, B: $PlanMaxUnits)
+    %depthFits = call InRange_IntInt(Value: %regionUnits, Min: %minNeeded, Max: %maxAllowed, InclusiveMin: true, InclusiveMax: true)
+    branch(%depthFits) [true -> @build, false -> @fail]
+@build:
+    %privateWidthUnits = call DrawInt(Low: $PlanMinUnits, High: %privateHigh)
+    %hallXUnits0 = call Subtract_IntInt(A: %widthUnits, B: 4)
+    %hallXUnits = call Subtract_IntInt(A: %hallXUnits0, B: %privateWidthUnits)
+    %hallX = call Multiply_DoubleDouble(A: %hallXUnits, B: 50)
+    set PlanLeftWidthUnits = %hallXUnits
+    set OpenPlanHallX = %hallX
+    set SideWidth = %hallX
+    %publicY = select(cond: $EntranceAtRear, true: $L, false: 500.0)
+    %publicStart = call Subtract_DoubleDouble(A: %publicY, B: 500)
+    %regionStart = select(cond: $EntranceAtRear, true: 0.0, false: 500.0)
+    set PlanRegionStart = %regionStart
+    set PlanRegionDepth = %regionDepth
+    call Array_Clear(TargetArray: $PendingRooms)
+    %houseCenter = call Divide_DoubleDouble(A: $W, B: 2)
+    %offsetUnits = call DrawInt(Low: -1, High: 1)
+    %offset = call Multiply_DoubleDouble(A: %offsetUnits, B: 50)
+    %entranceCenterRaw = call Add_DoubleDouble(A: %houseCenter, B: %offset)
+    %entranceMax = call Subtract_DoubleDouble(A: $W, B: 250)
+    %entranceCenterHigh = call FMin(A: %entranceCenterRaw, B: %entranceMax)
+    %entranceCenter = call FMax(A: %entranceCenterHigh, B: 250)
+    set EntranceCenterX = %entranceCenter
+    %entranceY = select(cond: $EntranceAtRear, true: $L, false: 0.0)
+    call AddPlannedRoom(Kind: "OpenPlan", X: 0, Y: %publicStart, Width: $W, Depth: 500, DoorX: %entranceCenter, DoorY: %entranceY)
+    call AddPlannedRoom(Kind: "OpenPlan", X: 0, Y: %regionStart, Width: %hallX, Depth: %regionDepth, DoorX: %hallX, DoorY: %publicY)
+    call PlanOpenPrivate(Count: %privateCount, StartY: %regionStart, RegionDepth: %regionDepth)
+    %hallCenterX = call Add_DoubleDouble(A: %hallX, B: 100)
+    %regionEnd = call Add_DoubleDouble(A: %regionStart, B: %regionDepth)
+    %hallDoorY = select(cond: $EntranceAtRear, true: %regionEnd, false: %regionStart)
+    call AddPlannedRoom(Kind: "Hallway", X: %hallX, Y: %regionStart, Width: 200, Depth: %regionDepth, DoorX: %hallCenterX, DoorY: %hallDoorY)
+    set FrontSplitX = 0
+    %expected0 = call Add_IntInt(A: $RoomCount, B: 2)
+    set ExpectedRoomEntries = %expected0
+    call ValidateAndCommit(FailureMessage: "Cannot generate Open Plan: the L-shaped public area or one-sided private corridor failed validation. Previous building retained.")
+    return
+@fail:
+    set GenerationStatus = "Cannot generate Open Plan: this style needs a 5m public zone, a 2m hall, at least a 3m open-plan return, and stacked private-room depth. Increase width/length or reduce RoomCount. Previous building retained."
+    return
+}
+
+entry function BuildPlan() {
+    set LayoutValid = false
+    %floorOK = call EqualEqual_IntInt(A: $Floors, B: 1)
+    branch(%floorOK) [true -> @count, false -> @badFloor]
+@count:
+    %countOK = call InRange_IntInt(Value: $RoomCount, Min: 3, Max: 8, InclusiveMin: true, InclusiveMax: true)
+    branch(%countOK) [true -> @dimensions, false -> @badCount]
+@dimensions:
+    %widthOK = call InRange_IntInt(Value: $WidthMetres, Min: 6, Max: 30, InclusiveMin: true, InclusiveMax: true)
+    %lengthOK = call InRange_IntInt(Value: $LengthMetres, Min: 4, Max: 40, InclusiveMin: true, InclusiveMax: true)
+    %dimsOK = call BooleanAND(A: %widthOK, B: %lengthOK)
+    branch(%dimsOK) [true -> @bounds, false -> @badDimensions]
+@bounds:
+    %minOK = call InRange_IntInt(Value: $MinRoomMetres, Min: 2, Max: 12, InclusiveMin: true, InclusiveMax: true)
+    %maxOK = call InRange_IntInt(Value: $MaxRoomMetres, Min: $MinRoomMetres, Max: 20, InclusiveMin: true, InclusiveMax: true)
+    %boundsOK = call BooleanAND(A: %minOK, B: %maxOK)
+    branch(%boundsOK) [true -> @initialize, false -> @badBounds]
+@initialize:
+    %w = call Multiply_DoubleDouble(A: $WidthMetres, B: 100)
+    %l = call Multiply_DoubleDouble(A: $LengthMetres, B: 100)
+    set W = %w
+    set L = %l
+    %minCM = call Multiply_DoubleDouble(A: $MinRoomMetres, B: 100)
+    %minPadded = call Add_DoubleDouble(A: %minCM, B: 45)
+    %minFifty = call Divide_DoubleDouble(A: %minPadded, B: 50)
+    %minUnitsRaw = call FCeil(A: %minFifty)
+    %minUnits = call Max(A: %minUnitsRaw, B: 7)
+    set PlanMinUnits = %minUnits
+    %maxCM = call Multiply_DoubleDouble(A: $MaxRoomMetres, B: 100)
+    %maxPadded = call Add_DoubleDouble(A: %maxCM, B: 30)
+    %maxFifty = call Divide_DoubleDouble(A: %maxPadded, B: 50)
+    %maxUnits = call FFloor(A: %maxFifty)
+    set PlanMaxUnits = %maxUnits
+    %stream = call MakeRandomStream(InitialSeed: $Seed)
+    set Stream = %stream
+    %style = switch_enum<E_ResidentialLayoutStyle>($LayoutStyle) [Auto -> @auto, LivingRoomEntrance -> @living, FamilySuburban -> @family, OpenPlan -> @open, CentralHallway -> @central]
+@living:
+    set ResolvedLayoutStyle = E_ResidentialLayoutStyle::LivingRoomEntrance
+    call PlanLivingEntrance()
+    return
+@family:
+    set ResolvedLayoutStyle = E_ResidentialLayoutStyle::FamilySuburban
+    call PlanFamilySuburban()
+    return
+@open:
+    set ResolvedLayoutStyle = E_ResidentialLayoutStyle::OpenPlan
+    call PlanOpenPlan()
+    return
+@central:
+    set ResolvedLayoutStyle = E_ResidentialLayoutStyle::CentralHallway
+    call PlanCentralHallway()
+    return
+@auto:
+    %pick = call DrawInt(Low: 0, High: 3)
+    %choice = switch_int(%pick) [0 -> @autoLiving, 1 -> @autoFamily, 2 -> @autoOpen, 3 -> @autoCentral]
+@autoLiving:
+    set ResolvedLayoutStyle = E_ResidentialLayoutStyle::LivingRoomEntrance
+    call PlanLivingEntrance()
+    exec -> @autoCheck
+@autoFamily:
+    set ResolvedLayoutStyle = E_ResidentialLayoutStyle::FamilySuburban
+    call PlanFamilySuburban()
+    exec -> @autoCheck
+@autoOpen:
+    set ResolvedLayoutStyle = E_ResidentialLayoutStyle::OpenPlan
+    call PlanOpenPlan()
+    exec -> @autoCheck
+@autoCentral:
+    set ResolvedLayoutStyle = E_ResidentialLayoutStyle::CentralHallway
+    call PlanCentralHallway()
+    return
+@autoCheck:
+    branch($LayoutValid) [true -> @done, false -> @fallback]
+@fallback:
+    %fallbackStream = call MakeRandomStream(InitialSeed: $Seed)
+    set Stream = %fallbackStream
+    set ResolvedLayoutStyle = E_ResidentialLayoutStyle::CentralHallway
+    call PlanCentralHallway()
+    return
+@done:
+    return
+@badFloor:
+    set GenerationStatus = "Cannot generate: only one floor is supported. Previous building retained."
+    return
+@badCount:
+    set GenerationStatus = "Cannot generate: RoomCount must be 3-8. OpenPlan counts its connected L-shaped public area as one logical room. Previous building retained."
+    return
+@badDimensions:
+    set GenerationStatus = "Cannot generate: width must be 6-30m and length 4-40m in whole metres. Previous building retained."
+    return
+@badBounds:
+    set GenerationStatus = "Cannot generate: MinRoomMetres must be 2-12 and MaxRoomMetres must be between MinRoomMetres and 20. Previous building retained."
+    return
+}

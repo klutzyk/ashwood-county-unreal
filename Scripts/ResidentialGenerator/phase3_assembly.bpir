@@ -1,0 +1,432 @@
+entry function IsPublicRoom(name Kind) -> bool {
+    %hall = call EqualEqual_NameName(A: $Kind, B: "Hallway")
+    branch(%hall) [true -> @yes, false -> @living]
+@living:
+    %a = call EqualEqual_NameName(A: $Kind, B: "Living")
+    branch(%a) [true -> @yes, false -> @livingKitchen]
+@livingKitchen:
+    %b = call EqualEqual_NameName(A: $Kind, B: "LivingKitchen")
+    branch(%b) [true -> @yes, false -> @livingDining]
+@livingDining:
+    %c = call EqualEqual_NameName(A: $Kind, B: "LivingDining")
+    branch(%c) [true -> @yes, false -> @combined]
+@combined:
+    %d = call EqualEqual_NameName(A: $Kind, B: "LivingDiningKitchen")
+    branch(%d) [true -> @yes, false -> @open]
+@open:
+    %e = call EqualEqual_NameName(A: $Kind, B: "OpenPlan")
+    branch(%e) [true -> @yes, false -> @no]
+@yes:
+    return true
+@no:
+    return false
+}
+
+entry function WindowChance(name Kind) -> float {
+    %hall = call EqualEqual_NameName(A: $Kind, B: "Hallway")
+    branch(%hall) [true -> @none, false -> @bath]
+@bath:
+    %isBath = call EqualEqual_NameName(A: $Kind, B: "Bathroom")
+    branch(%isBath) [true -> @bathChance, false -> @bed]
+@bed:
+    %isBed = call EqualEqual_NameName(A: $Kind, B: "Bedroom")
+    branch(%isBed) [true -> @bedChance, false -> @kitchen]
+@kitchen:
+    %isKitchen = call EqualEqual_NameName(A: $Kind, B: "Kitchen")
+    branch(%isKitchen) [true -> @kitchenChance, false -> @public]
+@bathChance:
+    %bathValue = call Multiply_DoubleDouble(A: $WindowFrequency, B: 0.35)
+    return %bathValue
+@bedChance:
+    %bedValue = call FMax(A: $WindowFrequency, B: 0.75)
+    return %bedValue
+@kitchenChance:
+    %kitchenValue = call FMax(A: $WindowFrequency, B: 0.65)
+    return %kitchenValue
+@public:
+    %publicValue = call FMax(A: $WindowFrequency, B: 0.9)
+    return %publicValue
+@none:
+    return 0.0
+}
+
+entry function FacadeForKind(float X, float Y, float Yaw, float Length, name Kind) {
+    %segmentsFloat = call Divide_DoubleDouble(A: $Length, B: 300)
+    %segments = call FFloor(A: %segmentsFloat)
+    %last = call Subtract_IntInt(A: %segments, B: 1)
+    %chance = call WindowChance(Kind: $Kind)
+    %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @segment, Completed -> @remainder]
+@segment:
+    %roll = call RandomFloatFromStream(Stream: $Stream)
+    %useWindow = call Less_DoubleDouble(A: %roll, B: %chance)
+    %alongInt = call Multiply_IntInt(A: %loop.Index, B: 300)
+    %along = call Conv_IntToDouble(InInt: %alongInt)
+    %first = call EqualEqual_IntInt(A: %loop.Index, B: 0)
+    branch(%first) [true -> @firstCheck, false -> @randomCheck]
+@firstCheck:
+    %windowsEnabled = call Greater_DoubleDouble(A: $WindowFrequency, B: 0.0)
+    branch(%windowsEnabled) [true -> @firstKind, false -> @randomCheck]
+@firstKind:
+    %hallFirst = call EqualEqual_NameName(A: $Kind, B: "Hallway")
+    branch(%hallFirst) [true -> @randomCheck, false -> @bathFirst]
+@bathFirst:
+    %bathFirstValue = call EqualEqual_NameName(A: $Kind, B: "Bathroom")
+    branch(%bathFirstValue) [true -> @randomCheck, false -> @window]
+@randomCheck:
+    branch(%useWindow) [true -> @window, false -> @solid]
+@window:
+    call PlaceOffset(Component: $Window, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %along, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceOffset(Component: $Frame, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %along, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceOffset(Component: $Glass, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %along, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1)
+    end
+@solid:
+    call PlaceOffset(Component: $Exterior, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %along, Across: 0, Turn: 0, SX: 3, SY: 1, SZ: 1)
+    end
+@remainder:
+    %usedInt = call Multiply_IntInt(A: %segments, B: 300)
+    %used = call Conv_IntToDouble(InInt: %usedInt)
+    %tail = call Subtract_DoubleDouble(A: $Length, B: %used)
+    %offset = call MakeVector(X: %used, Y: 0, Z: 0)
+    %rotation = call MakeRotator(Roll: 0, Pitch: 0, Yaw: $Yaw)
+    %rotated = call GreaterGreater_VectorRotator(A: %offset, B: %rotation)
+    %parts = call BreakVector(InVec: %rotated)
+    %tailX = call Add_DoubleDouble(A: $X, B: %parts.X)
+    %tailY = call Add_DoubleDouble(A: $Y, B: %parts.Y)
+    call Strip(Component: $Exterior, X: %tailX, Y: %tailY, Z: 20, Yaw: $Yaw, Length: %tail)
+    return
+}
+
+entry function EntranceFacade(float X, float Y, float Yaw, float Length, float CenterAlong, name Kind) {
+    %before = call Subtract_DoubleDouble(A: $CenterAlong, B: 150)
+    call FacadeForKind(X: $X, Y: $Y, Yaw: $Yaw, Length: %before, Kind: $Kind)
+    call PlaceOffset(Component: $Entrance, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %before, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1)
+    %afterStart = call Add_DoubleDouble(A: $CenterAlong, B: 150)
+    %afterLength = call Subtract_DoubleDouble(A: $Length, B: %afterStart)
+    %offset = call MakeVector(X: %afterStart, Y: 0, Z: 0)
+    %rotation = call MakeRotator(Roll: 0, Pitch: 0, Yaw: $Yaw)
+    %rotated = call GreaterGreater_VectorRotator(A: %offset, B: %rotation)
+    %parts = call BreakVector(InVec: %rotated)
+    %afterX = call Add_DoubleDouble(A: $X, B: %parts.X)
+    %afterY = call Add_DoubleDouble(A: $Y, B: %parts.Y)
+    call FacadeForKind(X: %afterX, Y: %afterY, Yaw: $Yaw, Length: %afterLength, Kind: $Kind)
+    %frameAlong = call Subtract_DoubleDouble(A: $CenterAlong, B: 50)
+    call PlaceOffset(Component: $DoorFrame, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %frameAlong, Across: 10, Turn: 0, SX: 1, SY: 1, SZ: 1)
+    branch($ShowOpenDoors) [true -> @leaf, false -> @done]
+@leaf:
+    call PlaceOffset(Component: $DoorLeaf, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %frameAlong, Across: 10, Turn: -90, SX: 1, SY: 1, SZ: 1)
+    return
+@done:
+    return
+}
+
+entry function BuildRoomSideFacade(struct<ST_HouseRoom> Room) {
+    %room = break<ST_HouseRoom>($Room)
+    %min = call BreakVector(InVec: %room.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %room.Size_6_A050281547D25A85B4448B81EF60035D)
+    %isHall = call EqualEqual_NameName(A: %room.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Hallway")
+    branch(%isHall) [true -> @done, false -> @left]
+@left:
+    %onLeft = call EqualEqual_DoubleDouble(A: %min.X, B: 0)
+    branch(%onLeft) [true -> @leftBuild, false -> @right]
+@leftBuild:
+    %endY = call Add_DoubleDouble(A: %min.Y, B: %size.Y)
+    %clipEnd = call FMin(A: %endY, B: $L)
+    %clipStart = call FMax(A: %min.Y, B: 0)
+    %len = call Subtract_DoubleDouble(A: %clipEnd, B: %clipStart)
+    call FacadeForKind(X: 0, Y: %clipEnd, Yaw: 270, Length: %len, Kind: %room.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B)
+    exec -> @right
+@right:
+    %maxX = call Add_DoubleDouble(A: %min.X, B: %size.X)
+    %onRight = call EqualEqual_DoubleDouble(A: %maxX, B: $W)
+    branch(%onRight) [true -> @rightBuild, false -> @done]
+@rightBuild:
+    %endY2 = call Add_DoubleDouble(A: %min.Y, B: %size.Y)
+    %clipEnd2 = call FMin(A: %endY2, B: $L)
+    %clipStart2 = call FMax(A: %min.Y, B: 0)
+    %len2 = call Subtract_DoubleDouble(A: %clipEnd2, B: %clipStart2)
+    call FacadeForKind(X: $W, Y: %clipStart2, Yaw: 90, Length: %len2, Kind: %room.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B)
+    return
+@done:
+    return
+}
+
+entry function BuildPrivateRoomWalls(struct<ST_HouseRoom> Room) {
+    %room = break<ST_HouseRoom>($Room)
+    %public = call IsPublicRoom(Kind: %room.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B)
+    branch(%public) [true -> @done, false -> @familyKitchen]
+@familyKitchen:
+    %isKitchen = call EqualEqual_NameName(A: %room.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Kitchen")
+    %hasFrontSplit = call Greater_DoubleDouble(A: $FrontSplitX, B: 0)
+    %skipKitchen = call BooleanAND(A: %isKitchen, B: %hasFrontSplit)
+    branch(%skipKitchen) [true -> @done, false -> @build]
+@build:
+    %min = call BreakVector(InVec: %room.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %room.Size_6_A050281547D25A85B4448B81EF60035D)
+    %endY = call Add_DoubleDouble(A: %min.Y, B: %size.Y)
+    %onLeft = call EqualEqual_DoubleDouble(A: %min.X, B: 0)
+    branch(%onLeft) [true -> @leftDoor, false -> @rightDoor]
+@leftDoor:
+    %doorX = call Add_DoubleDouble(A: %size.X, B: 15)
+    call Opening(X: %doorX, Y: %min.Y, Yaw: 90, Length: %size.Y, ExteriorDoor: false)
+    exec -> @partition
+@rightDoor:
+    %doorX2 = call Subtract_DoubleDouble(A: %min.X, B: 15)
+    call Opening(X: %doorX2, Y: %endY, Yaw: 270, Length: %size.Y, ExteriorDoor: false)
+    exec -> @partition
+@partition:
+    %regionEnd = call Add_DoubleDouble(A: $PlanRegionStart, B: $PlanRegionDepth)
+    %needsPartition = call Less_DoubleDouble(A: %endY, B: %regionEnd)
+    branch(%needsPartition) [true -> @partitionBuild, false -> @done]
+@partitionBuild:
+    %wallY = call Subtract_DoubleDouble(A: %endY, B: 15)
+    call Strip(Component: $Interior, X: %min.X, Y: %wallY, Z: 20, Yaw: 0, Length: %size.X)
+    return
+@done:
+    return
+}
+
+entry function PassageAt(float X, float Y, float Yaw, float Length, float CenterAlong) {
+    %before = call Subtract_DoubleDouble(A: $CenterAlong, B: 150)
+    call Strip(Component: $Interior, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Length: %before)
+    call PlaceOffset(Component: $Doorway, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %before, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1)
+    %afterStart = call Add_DoubleDouble(A: $CenterAlong, B: 150)
+    %offset = call MakeVector(X: %afterStart, Y: 0, Z: 0)
+    %rotation = call MakeRotator(Roll: 0, Pitch: 0, Yaw: $Yaw)
+    %rotated = call GreaterGreater_VectorRotator(A: %offset, B: %rotation)
+    %parts = call BreakVector(InVec: %rotated)
+    %afterX = call Add_DoubleDouble(A: $X, B: %parts.X)
+    %afterY = call Add_DoubleDouble(A: $Y, B: %parts.Y)
+    %afterLength = call Subtract_DoubleDouble(A: $Length, B: %afterStart)
+    call Strip(Component: $Interior, X: %afterX, Y: %afterY, Z: 20, Yaw: $Yaw, Length: %afterLength)
+    return
+}
+
+entry function BuildNewLayoutShell() {
+    call Place(Component: $Corner, X: 0, Y: 0, Z: 20, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Corner, X: $W, Y: 0, Z: 20, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Corner, X: $W, Y: $L, Z: 20, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Corner, X: 0, Y: $L, Z: 20, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    %facadeLength = call Subtract_DoubleDouble(A: $W, B: 200)
+    %frontCenter = call Subtract_DoubleDouble(A: $EntranceCenterX, B: 100)
+    %rearStart = call Subtract_DoubleDouble(A: $W, B: 100)
+    %rearCenter = call Subtract_DoubleDouble(A: %rearStart, B: $EntranceCenterX)
+    branch($EntranceAtRear) [true -> @rearEntrance, false -> @frontEntrance]
+@frontEntrance:
+    call EntranceFacade(X: 100, Y: 0, Yaw: 0, Length: %facadeLength, CenterAlong: %frontCenter, Kind: "Living")
+    call FacadeForKind(X: %rearStart, Y: $L, Yaw: 180, Length: %facadeLength, Kind: "Bedroom")
+    exec -> @rooms
+@rearEntrance:
+    call FacadeForKind(X: 100, Y: 0, Yaw: 0, Length: %facadeLength, Kind: "Bedroom")
+    call EntranceFacade(X: %rearStart, Y: $L, Yaw: 180, Length: %facadeLength, CenterAlong: %rearCenter, Kind: "Living")
+    exec -> @rooms
+@rooms:
+    %last = call Subtract_IntInt(A: $ExpectedRoomEntries, B: 1)
+    %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @room, Completed -> @internal]
+@room:
+    %item = call Array_Get(TargetArray: $Rooms, Index: %loop.Index)
+    call BuildRoomSideFacade(Room: %item.Item)
+    call BuildPrivateRoomWalls(Room: %item.Item)
+    end
+@internal:
+    %isOpen = call EqualEqual_ByteByte(A: $ResolvedLayoutStyle, B: E_ResidentialLayoutStyle::OpenPlan)
+    branch(%isOpen) [true -> @openInternal, false -> @twoWingInternal]
+@twoWingInternal:
+    %boundary = select(cond: $EntranceAtRear, true: $PlanRegionDepth, false: $PlanRegionStart)
+    %boundaryCenter = call Add_DoubleDouble(A: $SideWidth, B: 100)
+    call PassageAt(X: 0, Y: %boundary, Yaw: 0, Length: $W, CenterAlong: %boundaryCenter)
+    %hasSplit = call Greater_DoubleDouble(A: $FrontSplitX, B: 0)
+    branch(%hasSplit) [true -> @split, false -> @done]
+@split:
+    %publicStart = select(cond: $EntranceAtRear, true: $PlanRegionDepth, false: 0.0)
+    call PassageAt(X: $FrontSplitX, Y: %publicStart, Yaw: 90, Length: 500, CenterAlong: 250)
+    return
+@openInternal:
+    %hallBoundaryX = call Add_DoubleDouble(A: $OpenPlanHallX, B: 15)
+    %rearOpening = call Subtract_DoubleDouble(A: $PlanRegionDepth, B: 300)
+    %openingCenter = select(cond: $EntranceAtRear, true: %rearOpening, false: 300.0)
+    call PassageAt(X: %hallBoundaryX, Y: $PlanRegionStart, Yaw: 90, Length: $PlanRegionDepth, CenterAlong: %openingCenter)
+    %boundaryOpen = select(cond: $EntranceAtRear, true: $PlanRegionDepth, false: $PlanRegionStart)
+    %privateStartX = call Add_DoubleDouble(A: $OpenPlanHallX, B: 200)
+    %privateWidth = call Subtract_DoubleDouble(A: $W, B: %privateStartX)
+    call Strip(Component: $Interior, X: %privateStartX, Y: %boundaryOpen, Z: 20, Yaw: 0, Length: %privateWidth)
+    return
+@done:
+    return
+}
+
+entry function BuildShell() {
+    %central = call EqualEqual_ByteByte(A: $ResolvedLayoutStyle, B: E_ResidentialLayoutStyle::CentralHallway)
+    branch(%central) [true -> @centralBuild, false -> @newBuild]
+@centralBuild:
+    call Place(Component: $Corner, X: 0, Y: 0, Z: 20, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Corner, X: $W, Y: 0, Z: 20, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Corner, X: $W, Y: $L, Z: 20, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Corner, X: 0, Y: $L, Z: 20, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    %length = call Subtract_DoubleDouble(A: $W, B: 200)
+    %frontCenter = call Subtract_DoubleDouble(A: $EntranceCenterX, B: 100)
+    %rearStart = call Subtract_DoubleDouble(A: $W, B: 100)
+    %rearCenter = call Subtract_DoubleDouble(A: %rearStart, B: $EntranceCenterX)
+    branch($EntranceAtRear) [true -> @centralRear, false -> @centralFront]
+@centralFront:
+    call EntranceFacade(X: 100, Y: 0, Yaw: 0, Length: %length, CenterAlong: %frontCenter, Kind: "Bedroom")
+    call FacadeForKind(X: %rearStart, Y: $L, Yaw: 180, Length: %length, Kind: "Bedroom")
+    exec -> @centralRooms
+@centralRear:
+    call FacadeForKind(X: 100, Y: 0, Yaw: 0, Length: %length, Kind: "Bedroom")
+    call EntranceFacade(X: %rearStart, Y: $L, Yaw: 180, Length: %length, CenterAlong: %rearCenter, Kind: "Bedroom")
+    exec -> @centralRooms
+@centralRooms:
+    %last = call Subtract_IntInt(A: $RoomCount, B: 1)
+    %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @centralRoom, Completed -> @done]
+@centralRoom:
+    %item = call Array_Get(TargetArray: $Rooms, Index: %loop.Index)
+    call BuildRoomWalls(Room: %item.Item)
+    end
+@newBuild:
+    call BuildNewLayoutShell()
+    return
+@done:
+    return
+}
+
+entry function ApplyMaterials() {
+    %style = switch_enum<E_ResidentialExteriorStyle>($ExteriorStyle) [Custom -> @custom, LightWeatherboard -> @weatherboard, CleanRender -> @clean, WeatheredConcrete -> @weathered]
+@custom:
+    call SetMaterial(Target: $Exterior, ElementIndex: 1, Material: $ExteriorMaterial)
+    call SetMaterial(Target: $Entrance, ElementIndex: 1, Material: $ExteriorMaterial)
+    call SetMaterial(Target: $Window, ElementIndex: 1, Material: $ExteriorMaterial)
+    call SetMaterial(Target: $Corner, ElementIndex: 1, Material: $ExteriorMaterial)
+    exec -> @common
+@weatherboard:
+    call SetMaterial(Target: $Exterior, ElementIndex: 1, Material: $WeatherboardMaterial)
+    call SetMaterial(Target: $Entrance, ElementIndex: 1, Material: $WeatherboardMaterial)
+    call SetMaterial(Target: $Window, ElementIndex: 1, Material: $WeatherboardMaterial)
+    call SetMaterial(Target: $Corner, ElementIndex: 1, Material: $WeatherboardMaterial)
+    exec -> @common
+@clean:
+    call SetMaterial(Target: $Exterior, ElementIndex: 1, Material: $CleanRenderMaterial)
+    call SetMaterial(Target: $Entrance, ElementIndex: 1, Material: $CleanRenderMaterial)
+    call SetMaterial(Target: $Window, ElementIndex: 1, Material: $CleanRenderMaterial)
+    call SetMaterial(Target: $Corner, ElementIndex: 1, Material: $CleanRenderMaterial)
+    exec -> @common
+@weathered:
+    call SetMaterial(Target: $Exterior, ElementIndex: 1, Material: $WeatheredExteriorMaterial)
+    call SetMaterial(Target: $Entrance, ElementIndex: 1, Material: $WeatheredExteriorMaterial)
+    call SetMaterial(Target: $Window, ElementIndex: 1, Material: $WeatheredExteriorMaterial)
+    call SetMaterial(Target: $Corner, ElementIndex: 1, Material: $WeatheredExteriorMaterial)
+    exec -> @common
+@common:
+    call SetMaterial(Target: $Interior, ElementIndex: 0, Material: $InteriorWallMaterial)
+    call SetMaterial(Target: $Doorway, ElementIndex: 0, Material: $InteriorWallMaterial)
+    call SetMaterial(Target: $Floor, ElementIndex: 1, Material: $FloorMaterial)
+    call SetMaterial(Target: $RoofPanel, ElementIndex: 1, Material: $RoofMaterial)
+    call SetMaterial(Target: $RoofCorner, ElementIndex: 1, Material: $RoofMaterial)
+    call SetMaterial(Target: $Exterior, ElementIndex: 2, Material: $TrimMaterial)
+    call SetMaterial(Target: $Entrance, ElementIndex: 2, Material: $TrimMaterial)
+    call SetMaterial(Target: $Window, ElementIndex: 2, Material: $TrimMaterial)
+    call SetMaterial(Target: $Corner, ElementIndex: 2, Material: $TrimMaterial)
+    call SetMaterial(Target: $Frame, ElementIndex: 0, Material: $TrimMaterial)
+    call SetMaterial(Target: $DoorFrame, ElementIndex: 0, Material: $TrimMaterial)
+    call SetMaterial(Target: $PorchPlatform, ElementIndex: 1, Material: $FloorMaterial)
+    call SetMaterial(Target: $PorchPost, ElementIndex: 0, Material: $TrimMaterial)
+    call SetMaterial(Target: $PorchCanopy, ElementIndex: 1, Material: $RoofMaterial)
+    return
+}
+
+entry function BuildPorch() {
+    branch($PorchEnabled) [true -> @style, false -> @done]
+@style:
+    %rearSign = select(cond: $EntranceAtRear, true: 1.0, false: -1.0)
+    %platformYFront = call Subtract_DoubleDouble(A: 0.0, B: 200.0)
+    %platformY = select(cond: $EntranceAtRear, true: $L, false: %platformYFront)
+    %platformX = call Subtract_DoubleDouble(A: $EntranceCenterX, B: 150)
+    call Place(Component: $PorchPlatform, X: %platformX, Y: %platformY, Z: 0, Yaw: 0, SX: 3, SY: 2, SZ: 1)
+    %porchStyle = switch_enum<E_ResidentialPorchStyle>($PorchStyle) [Landing -> @done, LandingWithStep -> @step, Canopy -> @canopy]
+@step:
+    %stepFrontOffset = call Subtract_DoubleDouble(A: 0.0, B: 100.0)
+    %stepOffset = select(cond: $EntranceAtRear, true: 200.0, false: %stepFrontOffset)
+    %stepY = call Add_DoubleDouble(A: %platformY, B: %stepOffset)
+    call Place(Component: $PorchStep, X: %platformX, Y: %stepY, Z: -5, Yaw: 0, SX: 3, SY: 2.5, SZ: 0.15)
+    return
+@canopy:
+    %frontPostY = call Add_DoubleDouble(A: %platformY, B: 15)
+    %rearPostY = call Add_DoubleDouble(A: %platformY, B: 175)
+    %postY = select(cond: $EntranceAtRear, true: %rearPostY, false: %frontPostY)
+    %leftPostX = call Subtract_DoubleDouble(A: $EntranceCenterX, B: 135)
+    %rightPostX = call Add_DoubleDouble(A: $EntranceCenterX, B: 110)
+    call Place(Component: $PorchPost, X: %leftPostX, Y: %postY, Z: 20, Yaw: 0, SX: 0.25, SY: 0.25, SZ: 3)
+    call Place(Component: $PorchPost, X: %rightPostX, Y: %postY, Z: 20, Yaw: 0, SX: 0.25, SY: 0.25, SZ: 3)
+    %canopyX = call Subtract_DoubleDouble(A: $EntranceCenterX, B: 150)
+    call Place(Component: $PorchCanopy, X: %canopyX, Y: %platformY, Z: 315, Yaw: 0, SX: 1.5, SY: 2, SZ: 1)
+    return
+@done:
+    return
+}
+
+entry function ClearGeometry() {
+    call TransactObject(Object: $Ceiling)
+    call ClearInstances(Target: $Ceiling)
+    call TransactObject(Object: $Floor)
+    call ClearInstances(Target: $Floor)
+    call TransactObject(Object: $Exterior)
+    call ClearInstances(Target: $Exterior)
+    call TransactObject(Object: $Interior)
+    call ClearInstances(Target: $Interior)
+    call TransactObject(Object: $Corner)
+    call ClearInstances(Target: $Corner)
+    call TransactObject(Object: $Entrance)
+    call ClearInstances(Target: $Entrance)
+    call TransactObject(Object: $Doorway)
+    call ClearInstances(Target: $Doorway)
+    call TransactObject(Object: $Window)
+    call ClearInstances(Target: $Window)
+    call TransactObject(Object: $Frame)
+    call ClearInstances(Target: $Frame)
+    call TransactObject(Object: $Glass)
+    call ClearInstances(Target: $Glass)
+    call TransactObject(Object: $DoorFrame)
+    call ClearInstances(Target: $DoorFrame)
+    call TransactObject(Object: $DoorLeaf)
+    call ClearInstances(Target: $DoorLeaf)
+    call TransactObject(Object: $RoofPanel)
+    call ClearInstances(Target: $RoofPanel)
+    call TransactObject(Object: $RoofCorner)
+    call ClearInstances(Target: $RoofCorner)
+    call TransactObject(Object: $Foundation)
+    call ClearInstances(Target: $Foundation)
+    call TransactObject(Object: $PorchPlatform)
+    call ClearInstances(Target: $PorchPlatform)
+    call TransactObject(Object: $PorchStep)
+    call ClearInstances(Target: $PorchStep)
+    call TransactObject(Object: $PorchPost)
+    call ClearInstances(Target: $PorchPost)
+    call TransactObject(Object: $PorchCanopy)
+    call ClearInstances(Target: $PorchCanopy)
+    return
+}
+
+@meta(Category="House Generator")
+@flags(Public, CallInEditor)
+entry function RegenerateBuilding() {
+    call BeginTransaction(Context: "ResidentialGenerator", Description: "NSLOCTEXT(\"AshwoodHousing\", \"RegeneratePhase3\", \"Regenerate Phase 3 residential building\")", PrimaryObject: self)
+    call TransactObject(Object: self)
+    call BuildPlan()
+    branch($LayoutValid) [true -> @generate, false -> @finish]
+@generate:
+    call ClearGeometry()
+    call ApplyMaterials()
+    call SetVisibility(Target: $RoofPanel, bNewVisibility: true, bPropagateToChildren: false)
+    call SetVisibility(Target: $RoofCorner, bNewVisibility: true, bPropagateToChildren: false)
+    call SetVisibility(Target: $Ceiling, bNewVisibility: true, bPropagateToChildren: false)
+    call BuildFloors()
+    call BuildShell()
+    call BuildRoof()
+    call BuildPorch()
+    %count = call Conv_IntToString(InInt: $RoomCount)
+    %message = call Concat_StrStr(A: "Generated Phase 3 layout; logical rooms: ", B: %count)
+    set GenerationStatus = %message
+    exec -> @finish
+@finish:
+    call EndTransaction()
+    return
+}

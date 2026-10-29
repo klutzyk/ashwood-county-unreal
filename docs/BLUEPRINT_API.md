@@ -368,18 +368,22 @@ The current slice intentionally has no inventory, weapon hierarchy, ammunition, 
 4. Override `Zombie Died` for a death montage, dissolve, or non-networked cosmetic ragdoll. Native code disables behavior and later cleans up using **Corpse Cleanup Delay**.
 5. Animation-notify-driven authoritative timing is an extension point via `Commit Attack Impact`, but the current automatic windup remains active; switching timing modes is not yet exposed without a small C++ change.
 
-## Procedural residential generator (Phase 2, 2026-10-29)
+## Procedural residential generator (Phase 3, 2026-10-30)
 
-`/Game/_Main/Buildings/Procedural/BP_ResidentialGenerator` remains an editable Blueprint Actor, not a native replacement. `ST_HouseRoom` is unchanged.
+`/Game/_Main/Buildings/Procedural/BP_ResidentialGenerator` remains an editable Blueprint Actor, not a native replacement. `ST_HouseRoom` is unchanged. Phase 3 preserves the Phase 2 Call in Editor workflow while adding distinct floor-plan strategies, facade-aware windows, finish presets, and optional porches.
 
-- **RegenerateBuilding** (Public, Call in Editor): validate a pending plan before clearing any ISM instances; rebuild only on success. Explicit editor transaction; no automatic construction/load regeneration. Read `LayoutValid` and `GenerationStatus` after calling. Save the level to persist generated instances.
+- **RegenerateBuilding** (Public, Call in Editor): deterministically plan and validate the selected layout before clearing any ISM instances, then rebuild only on success. It applies material/style settings and porch geometry as part of the same editor transaction. There is no automatic construction/load regeneration. Read `LayoutValid`, `ResolvedLayoutStyle`, and `GenerationStatus` after calling, then save the level to persist generated instances.
 - **ConfigurePlot**: existing callable integration entry retained unchanged; no PCG graph or multiplayer support added.
-- Editable inputs: `WidthMetres`, `LengthMetres`, `Floors` (1 only), `Seed`, `RoomCount` (3-8, EXCLUDES hallway), `MinRoomMetres`, `MaxRoomMetres` (clear interior dimensions; exclude hallway), `WindowFrequency` (0-1), `RoofEnabled`, `ShowOpenDoors`, `EntranceAtRear`, `FloorMaterial`, `ExteriorMaterial`.
-- Three rooms means LivingKitchen + Bedroom + Bathroom. Four or more separate Living and Kitchen, with one Bathroom and remaining Bedrooms. All rooms open to shared circulation.
-- `Rooms` includes one additional Hallway entry. Its existing struct fields are room type, minimum corner, nominal size and door centre, in actor-local centimetres. Names are `LivingKitchen`, `Living`, `Kitchen`, `Bedroom`, `Bathroom`, `Hallway`.
-- Internal planning helpers: `DrawInt`, `PickRoomType`, `ChooseRoomDepth`, `AddPlannedRoom`, `PlanWing`, `RoomIsValid`, `RoomsOverlap`, `ValidatePendingPlan`. `PendingRooms` is validated before replacing `Rooms`; these helpers are implementation details, not independent designer entry points. `OpeningAt` supports corridor-offset exterior entrances.
+- Core editable inputs: `WidthMetres`, `LengthMetres`, `Floors` (1 only), `Seed`, `RoomCount` (3-8 logical rooms), `MinRoomMetres`, `MaxRoomMetres`, `WindowFrequency` (0-1), `RoofEnabled`, `ShowOpenDoors`, and `EntranceAtRear`.
+- **LayoutStyle** (`E_ResidentialLayoutStyle`): `Auto`, `LivingRoomEntrance`, `FamilySuburban`, `OpenPlan`, or `CentralHallway`. `Auto` makes a seeded selection and falls back to `CentralHallway` when the selected residential strategy is infeasible for the requested dimensions/count. `ResolvedLayoutStyle` reports the strategy actually built.
+- `LivingRoomEntrance` opens into a full-width living area before a short private hall. `FamilySuburban` groups living/dining/kitchen space at the entrance and bedrooms/bathroom in a private wing. `OpenPlan` represents one logical open-plan room with two connected rectangles plus a hall. `CentralHallway` retains the Phase 2 two-wing arrangement.
+- `RoomCount` is a logical count. The open-plan layout stores two public rectangles for one combined logical room, so its `Rooms` array contains `RoomCount + 2` entries; the other layouts normally contain `RoomCount + 1` because the hallway is additional circulation. Room records remain actor-local centimetre values using the existing struct fields.
+- Finish inputs: `ExteriorStyle` (`E_ResidentialExteriorStyle`: `Custom`, `LightWeatherboard`, `CleanRender`, `WeatheredConcrete`), `ExteriorMaterial` (used by `Custom`), `InteriorWallMaterial`, `FloorMaterial`, `RoofMaterial`, and `TrimMaterial`. Presets reference existing read-only imported material assets; the roof and trim are independent of exterior walls.
+- Porch inputs: `PorchEnabled` and `PorchStyle` (`E_ResidentialPorchStyle`: `Landing`, `LandingWithStep`, `Canopy`). Porch components are `PorchPlatform`, `PorchStep`, `PorchPost`, and `PorchCanopy`; regeneration clears these with the rest of the generated ISM geometry.
+- Facade windows are derived from room/exterior-edge relationships. Public rooms and bedrooms are preferred, bathrooms are restricted, halls are excluded, the entrance module remains clear, and `WindowFrequency = 0` disables windows.
+- Internal Phase 3 helpers include the strategy planners, `PassageAt` for leaf-free shared-area transitions, facade-window generation, style resolution/application, and porch assembly. `PendingRooms` is still validated for bounds, room size, overlap, doors, accessibility structure, and exact footprint coverage before it replaces `Rooms`; helpers are implementation details, not independent designer entry points.
 
-See [Residential generator guide](RESIDENTIAL_GENERATOR.md) for feasibility limits, tested examples, evidence and manual checks.
+See [Residential generator guide](RESIDENTIAL_GENERATOR.md) for feasibility limits, exact assets, test matrices, screenshots, failures, and manual inspection steps.
 
 ## Current limitations
 

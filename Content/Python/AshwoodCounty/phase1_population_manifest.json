@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "map": "/Game/_Main/World/Phase1/L_Ashwood_Phase1",
+  "coordinate_units": "centimetres",
+  "landscape_bounds": {
+    "min": [-100800, -100800],
+    "max": [100800, 100800]
+  },
+  "protected_forest_bounds": {
+    "min": [-14406, 45861],
+    "max": [61158, 110553]
+  },
+  "required_data_layers": [
+    "/Game/_Main/World/Phase1/DataLayers/DL_Phase1_Settlement",
+    "/Game/_Main/World/Phase1/DataLayers/DL_Phase1_RuralPOIs",
+    "/Game/_Main/World/Phase1/DataLayers/DL_Phase1_Utilities"
+  ],
+  "forbidden_asset_prefixes": [
+    "/Game/_Main/PCG/Forests",
+    "/Game/_Main/Environment/Trees",
+    "/Game/Megaplant_Library"
+  ],
+  "sites": [
+    {
+      "id": "town_commercial_core",
+      "data_layer": "DL_Phase1_Settlement",
+      "centre": [30000, 7000],
+      "footprint_half_extent": [10000, 12000],
+      "role": "Small shops and main-street services",
+      "asset_path": null
+    },
+    {
+      "id": "town_emergency_services",
+      "data_layer": "DL_Phase1_Settlement",
+      "centre": [32000, 36000],
+      "footprint_half_extent": [7500, 6500],
+      "role": "Combined police and fire compound",
+      "asset_path": null
+    },
+    {
+      "id": "town_clinic",
+      "data_layer": "DL_Phase1_Settlement",
+      "centre": [50500, 13000],
+      "footprint_half_extent": [5500, 5000],
+      "role": "Clinic or urgent-care building",
+      "asset_path": null
+    },
+    {
+      "id": "town_residential_east",
+      "data_layer": "DL_Phase1_Settlement",
+      "centre": [58000, 37000],
+      "footprint_half_extent": [11500, 7500],
+      "role": "Detached residential lots",
+      "asset_path": null
+    },
+    {
+      "id": "town_industrial_south",
+      "data_layer": "DL_Phase1_Settlement",
+      "centre": [60000, -25000],
+      "footprint_half_extent": [10000, 5000],
+      "role": "Light industrial and council service yard",
+      "asset_path": null
+    },
+    {
+      "id": "highway_service_station_west",
+      "data_layer": "DL_Phase1_RuralPOIs",
+      "centre": [-60000, -7000],
+      "footprint_half_extent": [9000, 6500],
+      "role": "Fuel station and small roadside business",
+      "asset_path": null
+    },
+    {
+      "id": "southwest_farmstead",
+      "data_layer": "DL_Phase1_RuralPOIs",
+      "centre": [-70000, -50000],
+      "footprint_half_extent": [13000, 11000],
+      "role": "Farmhouse, barn, shed, and working yard",
+      "asset_path": null
+    },
+    {
+      "id": "west_road_campsite",
+      "data_layer": "DL_Phase1_RuralPOIs",
+      "centre": [-78000, 30000],
+      "footprint_half_extent": [7000, 9000],
+      "role": "Abandoned trailhead and small campsite",
+      "asset_path": null
+    },
+    {
+      "id": "east_utility_compound",
+      "data_layer": "DL_Phase1_Utilities",
+      "centre": [82500, 27000],
+      "footprint_half_extent": [5500, 6500],
+      "role": "Substation or county maintenance compound",
+      "asset_path": null
+    }
+  ]
+}

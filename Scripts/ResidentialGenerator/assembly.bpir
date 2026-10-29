@@ -1,0 +1,75 @@
+entry function PlaceOffset(object<InstancedStaticMeshComponent> Component, float X, float Y, float Z, float Yaw, float Along, float Across, float Turn, float SX, float SY, float SZ) {
+ %r = call MakeRotator(Yaw: $Yaw)
+ %v = make<Vector>(X: $Along, Y: $Across, Z: 0)
+ %offset = call GreaterGreater_VectorRotator(A: %v, B: %r)
+ %px = call Add_DoubleDouble(A: $X, B: %offset.X)
+ %py = call Add_DoubleDouble(A: $Y, B: %offset.Y)
+ %angle = call Add_DoubleDouble(A: $Yaw, B: $Turn)
+ call Place(Component: $Component, X: %px, Y: %py, Z: $Z, Yaw: %angle, SX: $SX, SY: $SY, SZ: $SZ)
+}
+entry function Strip(object<InstancedStaticMeshComponent> Component, float X, float Y, float Z, float Yaw, float Length) {
+ %n = call Divide_DoubleDouble(A: $Length, B: 100)
+ %ceil = call FCeil(A: %n)
+ %last = call Subtract_IntInt(A: %ceil, B: 1)
+ %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @body, Completed -> @done]
+@body:
+ %along = call Multiply_DoubleDouble(A: %loop.Index, B: 100)
+ %remaining = call Subtract_DoubleDouble(A: $Length, B: %along)
+ %size = call FMin(A: %remaining, B: 100)
+ %sx = call Divide_DoubleDouble(A: %size, B: 100)
+ call PlaceOffset(Component: $Component, X: $X, Y: $Y, Z: $Z, Yaw: $Yaw, Along: %along, Across: 0, Turn: 0, SX: %sx, SY: 1, SZ: 1)
+ end
+@done:
+ return
+}
+entry function Opening(float X, float Y, float Yaw, float Length, bool ExteriorDoor) {
+ %half = call Divide_DoubleDouble(A: $Length, B: 2)
+ %before = call Subtract_DoubleDouble(A: %half, B: 150)
+ %wall = select(cond: $ExteriorDoor, true: $Exterior, false: $Interior)
+ %hole = select(cond: $ExteriorDoor, true: $Entrance, false: $Doorway)
+ call Strip(Component: %wall, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Length: %before)
+ call PlaceOffset(Component: %hole, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %before, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1)
+ %after = call Add_DoubleDouble(A: %half, B: 150)
+ %r = call MakeRotator(Yaw: $Yaw)
+ %v = make<Vector>(X: %after, Y: 0, Z: 0)
+ %delta = call GreaterGreater_VectorRotator(A: %v, B: %r)
+ %ax = call Add_DoubleDouble(A: $X, B: %delta.X)
+ %ay = call Add_DoubleDouble(A: $Y, B: %delta.Y)
+ call Strip(Component: %wall, X: %ax, Y: %ay, Z: 20, Yaw: $Yaw, Length: %before)
+ %framePos = call Subtract_DoubleDouble(A: %half, B: 50)
+ call PlaceOffset(Component: $DoorFrame, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %framePos, Across: 10, Turn: 0, SX: 1, SY: 1, SZ: 1)
+ branch($ShowOpenDoors) [true -> @leaf, false -> @done]
+@leaf:
+ call PlaceOffset(Component: $DoorLeaf, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %framePos, Across: 10, Turn: -90, SX: 1, SY: 1, SZ: 1)
+ end
+@done:
+ return
+}
+entry function Facade(float X, float Y, float Yaw, float Length) {
+ %q = call Divide_DoubleDouble(A: $Length, B: 300)
+ %n = call FFloor(A: %q)
+ %last = call Subtract_IntInt(A: %n, B: 1)
+ %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @body, Completed -> @tail]
+@body:
+ %along = call Multiply_DoubleDouble(A: %loop.Index, B: 300)
+ %random = call RandomFloatFromStream(Stream: $Stream)
+ %win = call Less_DoubleDouble(A: %random, B: $WindowFrequency)
+ branch(%win) [true -> @window, false -> @solid]
+@window:
+ call PlaceOffset(Component: $Window, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %along, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1)
+ call PlaceOffset(Component: $Frame, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %along, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1)
+ call PlaceOffset(Component: $Glass, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %along, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1)
+ end
+@solid:
+ call PlaceOffset(Component: $Exterior, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %along, Across: 0, Turn: 0, SX: 3, SY: 1, SZ: 1)
+ end
+@tail:
+ %used = call Multiply_DoubleDouble(A: %n, B: 300)
+ %remaining = call Subtract_DoubleDouble(A: $Length, B: %used)
+ %r = call MakeRotator(Yaw: $Yaw)
+ %v = make<Vector>(X: %used, Y: 0, Z: 0)
+ %delta = call GreaterGreater_VectorRotator(A: %v, B: %r)
+ %ax = call Add_DoubleDouble(A: $X, B: %delta.X)
+ %ay = call Add_DoubleDouble(A: $Y, B: %delta.Y)
+ call Strip(Component: $Exterior, X: %ax, Y: %ay, Z: 20, Yaw: $Yaw, Length: %remaining)
+}

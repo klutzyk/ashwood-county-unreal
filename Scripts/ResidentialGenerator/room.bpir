@@ -1,0 +1,7 @@
+entry function AddRoom(name Kind, float X, float Y, float Width, float Depth, float DoorX, float DoorY) {
+ %min = make<Vector>(X: $X, Y: $Y, Z: 20)
+ %size = make<Vector>(X: $Width, Y: $Depth, Z: 300)
+ %door = make<Vector>(X: $DoorX, Y: $DoorY, Z: 20)
+ %room = make<ST_HouseRoom>(RoomType_2_F86362AE45A86C1E8A21FB9EBA94C289: $Kind, Min_4_6F659B904A344F7DAB35BFBD7FBD70E8: %min, Size_6_25D13D12484E9D345709D6BC7A798A34: %size, DoorCenter_8_3AA5B8DD485AFC6BA111BAB1812AD48F: %door)
+ call Array_Add(TargetArray: $Rooms, NewItem: %room)
+}

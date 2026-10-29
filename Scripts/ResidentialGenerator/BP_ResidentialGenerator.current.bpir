@@ -1,0 +1,774 @@
+entry function Place(object<InstancedStaticMeshComponent> Component, float X, float Y, float Z, float Yaw, float SX, float SY, float SZ) @(0, 0) {
+    %n0: struct<Vector> = call MakeVector(X: $X, Y: $Y, Z: $Z) @(312, 64)
+    %n1: struct<Rotator> = call MakeRotator(Roll: 0.0, Pitch: 0.0, Yaw: $Yaw) @(240, 248)
+    %n2: struct<Vector> = call MakeVector(X: $SX, Y: $SY, Z: $SZ) @(312, 432)
+    %n3: struct<Transform> = call MakeTransform(Location: %n0, Rotation: %n1, Scale: %n2) @(520, 64)
+    call AddInstance(Target: $Component, InstanceTransform: %n3, bWorldSpace: false) @(768, -16)
+    end
+}
+
+entry function AddRoom(name Kind, float X, float Y, float Width, float Depth, float DoorX, float DoorY) @(0, 0) {
+    %n0: struct<Vector> = call MakeVector(X: $X, Y: $Y, Z: 20) @(248, 204)
+    %n1: struct<Vector> = call MakeVector(X: $Width, Y: $Depth, Z: 300) @(240, 388)
+    %n2: struct<Vector> = call MakeVector(X: $DoorX, Y: $DoorY, Z: 20) @(248, 572)
+    %n3: struct<ST_HouseRoom> = make<ST_HouseRoom>(RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B: $Kind, Min_4_CA1734C84A7EB842FDFAA89748F89847: %n0, Size_6_A050281547D25A85B4448B81EF60035D: %n1, DoorCenter_8_16660F964D81C9BEF3895C9A21215F87: %n2) @(480, 172)
+    call Array_Add(TargetArray: $Rooms, NewItem: %n3.ST_HouseRoom) @(768, 20)
+    end
+}
+
+entry function PlaceOffset(object<InstancedStaticMeshComponent> Component, float X, float Y, float Z, float Yaw, float Along, float Across, float Turn, float SX, float SY, float SZ) @(0, 0) {
+    %n0: struct<Vector> = call MakeVector(X: $Along, Y: $Across, Z: 0) @(296, 112)
+    %n1: struct<Rotator> = call MakeRotator(Roll: 0.0, Pitch: 0.0, Yaw: $Yaw) @(240, 296)
+    %n2: struct<Vector> = call GreaterGreater_VectorRotator(A: %n0, B: %n1) @(520, 112)
+    %n3: double = call BreakVector(InVec: %n2) @(728, 112)
+    %n4: double = call Add_DoubleDouble(A: $X, B: %n3.X) @(920, 100)
+    %n5: double = call Add_DoubleDouble(A: $Y, B: %n3.Y) @(920, 224)
+    %n6: double = call Add_DoubleDouble(A: $Yaw, B: $Turn) @(920, 344)
+    call Place(Component: $Component, X: %n4, Y: %n5, Z: $Z, Yaw: %n6, SX: $SX, SY: $SY, SZ: $SZ) @(1064, -16)
+    end
+}
+
+entry function Strip(object<InstancedStaticMeshComponent> Component, float X, float Y, float Z, float Yaw, float Length) @(0, 0) {
+    %n0: double = call Divide_DoubleDouble(A: $Length, B: 100) @(-256, 316)
+    %n1: int = call FCeil(A: %n0) @(-72, 312)
+    %n2: int = call Subtract_IntInt(A: %n1, B: 1) @(136, 324)
+    %n3: int = macro ForLoop(FirstIndex: 0, LastIndex: %n2) [Completed -> @completed, LoopBody -> @loopbody] @(304, 120)
+
+@loopbody:
+    %n4: double = call Conv_IntToDouble(InInt: %n3.Index) @(368, 32)
+    %n5: double = call Multiply_DoubleDouble(A: %n4, B: 100) @(624, 428)
+    %n6: double = call Subtract_DoubleDouble(A: $Length, B: %n5) @(808, 412)
+    %n7: double = call FMin(A: %n6, B: 100) @(952, 428)
+    %n8: double = call Divide_DoubleDouble(A: %n7, B: 100) @(1136, 444)
+    call PlaceOffset(Component: $Component, X: $X, Y: $Y, Z: $Z, Yaw: $Yaw, Along: %n5, Across: 0, Turn: 0, SX: %n8, SY: 1, SZ: 1) @(1320, 104)
+    end
+
+@completed:
+    return @(624, 184)
+}
+
+entry function Opening(float X, float Y, float Yaw, float Length, bool ExteriorDoor) @(0, 0) {
+    %n0: object<InstancedStaticMeshComponent> = select(Index: $ExteriorDoor, false: $Interior, true: $Exterior) @(440, 64)
+    %n1: double = call Divide_DoubleDouble(A: $Length, B: 2) @(272, 304)
+    %n2: double = call Subtract_DoubleDouble(A: %n1, B: 150) @(496, 248)
+    call Strip(Component: %n0, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Length: %n2) @(680, -16)
+    %n3: object<InstancedStaticMeshComponent> = select(Index: $ExteriorDoor, false: $Doorway, true: $Entrance) @(1200, 64)
+    call PlaceOffset(Component: %n3, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n2, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1) @(1440, -16)
+    %n4: double = call Add_DoubleDouble(A: %n1, B: 150) @(1768, 116)
+    %n5: struct<Vector> = call MakeVector(X: %n4, Y: 0, Z: 0) @(2008, 112)
+    %n6: struct<Rotator> = call MakeRotator(Roll: 0.0, Pitch: 0.0, Yaw: $Yaw) @(1952, 296)
+    %n7: struct<Vector> = call GreaterGreater_VectorRotator(A: %n5, B: %n6) @(2232, 112)
+    %n8: double = call BreakVector(InVec: %n7) @(2440, 112)
+    %n9: double = call Add_DoubleDouble(A: $X, B: %n8.X) @(2632, 100)
+    %n10: double = call Add_DoubleDouble(A: $Y, B: %n8.Y) @(2632, 224)
+    call Strip(Component: %n0, X: %n9, Y: %n10, Z: 20, Yaw: $Yaw, Length: %n2) @(2776, -16)
+    %n11: double = call Subtract_DoubleDouble(A: %n1, B: 50) @(3120, 228)
+    call PlaceOffset(Component: $DoorFrame, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n11, Across: 10, Turn: 0, SX: 1, SY: 1, SZ: 1) @(3296, -16)
+    %n12 = branch($ShowOpenDoors) [false -> @else, true -> @then] @(3848, 0)
+
+@then:
+    call PlaceOffset(Component: $DoorLeaf, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n11, Across: 10, Turn: -90, SX: 1, SY: 1, SZ: 1) @(4296, -16)
+    end
+
+@else:
+    return @(4104, 184)
+}
+
+entry function Facade(float X, float Y, float Yaw, float Length) @(0, 0) {
+    %n0: double = call Divide_DoubleDouble(A: $Length, B: 300) @(-256, 252)
+    %n1: int = call FFloor(A: %n0) @(-72, 248)
+    %n2: int = call Subtract_IntInt(A: %n1, B: 1) @(136, 260)
+    %n3: int = macro ForLoop(FirstIndex: 0, LastIndex: %n2) [Completed -> @completed, LoopBody -> @loopbody] @(304, 120)
+
+@loopbody:
+    %n4: float = call RandomFloatFromStream(Stream: $Stream) @(816, 176)
+    %n5: bool = call Less_DoubleDouble(A: %n4, B: $WindowFrequency) @(1056, 176)
+    %n6 = branch(%n5) [false -> @else, true -> @then] @(1200, 120)
+
+@completed:
+    %n7: double = call Conv_IntToDouble(InInt: %n1) @(1344, 528)
+    %n8: double = call Multiply_DoubleDouble(A: %n7, B: 300) @(624, 1360)
+    %n9: struct<Vector> = call MakeVector(X: %n8, Y: 0, Z: 0) @(864, 1356)
+    %n10: struct<Rotator> = call MakeRotator(Roll: 0.0, Pitch: 0.0, Yaw: $Yaw) @(808, 1544)
+    %n11: struct<Vector> = call GreaterGreater_VectorRotator(A: %n9, B: %n10) @(1088, 1356)
+    %n12: double = call BreakVector(InVec: %n11) @(1296, 1356)
+    %n13: double = call Add_DoubleDouble(A: $X, B: %n12.X) @(1536, 1344)
+    %n14: double = call Add_DoubleDouble(A: $Y, B: %n12.Y) @(1536, 1464)
+    %n15: double = call Subtract_DoubleDouble(A: $Length, B: %n8) @(1536, 1584)
+    call Strip(Component: $Exterior, X: %n13, Y: %n14, Z: 20, Yaw: $Yaw, Length: %n15) @(1680, 1144)
+    end
+
+@then:
+    %n16: double = call Conv_IntToDouble(InInt: %n3.Index) @(368, 32)
+    %n17: double = call Multiply_DoubleDouble(A: %n16, B: 300) @(1464, 348)
+    call PlaceOffset(Component: $Window, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n17, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1) @(1648, 104)
+    call PlaceOffset(Component: $Frame, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n17, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1) @(2168, 104)
+    call PlaceOffset(Component: $Glass, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n17, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1) @(2688, 104)
+    end
+
+@else:
+    call PlaceOffset(Component: $Exterior, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n17, Across: 0, Turn: 0, SX: 3, SY: 1, SZ: 1) @(1456, 624)
+    end
+}
+
+entry function RoofEdge(float X, float Y, float Z, float Yaw, float Length, float Depth) @(0, 0) {
+    %n0: double = call Divide_DoubleDouble(A: $Length, B: 200) @(-256, 316)
+    %n1: int = call FCeil(A: %n0) @(-72, 312)
+    %n2: int = call Subtract_IntInt(A: %n1, B: 1) @(136, 324)
+    %n3: int = macro ForLoop(FirstIndex: 0, LastIndex: %n2) [Completed -> @completed, LoopBody -> @loopbody] @(304, 120)
+
+@loopbody:
+    %n4: double = call Conv_IntToDouble(InInt: %n3.Index) @(368, 32)
+    %n5: double = call Multiply_DoubleDouble(A: %n4, B: 200) @(624, 552)
+    %n6: double = call Divide_DoubleDouble(A: $Depth, B: 200) @(1144, 444)
+    %n7: double = call Subtract_DoubleDouble(A: $Length, B: %n5) @(808, 536)
+    %n8: double = call FMin(A: %n7, B: 200) @(952, 552)
+    %n9: double = call Divide_DoubleDouble(A: %n8, B: 200) @(1144, 568)
+    call PlaceOffset(Component: $RoofPanel, X: $X, Y: $Y, Z: $Z, Yaw: $Yaw, Along: 0, Across: %n5, Turn: 0, SX: %n6, SY: %n9, SZ: %n6) @(1328, 104)
+    end
+
+@completed:
+    return @(624, 184)
+}
+
+entry function RoofRing(float Inset) @(0, 0) {
+    %n0: double = call Add_DoubleDouble(A: $W, B: 100) @(432, 56)
+    %n1: double = call Multiply_DoubleDouble(A: $Inset, B: 2) @(448, 176)
+    %n2: double = call Subtract_DoubleDouble(A: %n0, B: %n1) @(616, 56)
+    %n3: double = call Add_DoubleDouble(A: $L, B: 100) @(432, 296)
+    %n4: double = call Subtract_DoubleDouble(A: %n3, B: %n1) @(616, 176)
+    %n5: double = call FMin(A: %n2, B: %n4) @(760, 56)
+    %n6: double = call Divide_DoubleDouble(A: %n5, B: 2) @(904, 56)
+    %n7: double = call FMin(A: %n6, B: 200) @(1072, 56)
+    %n8: bool = call Greater_DoubleDouble(A: %n7, B: 0.1) @(1256, 56)
+    %n9 = branch(%n8) [false -> @else, true -> @then] @(1432, 0)
+
+@then:
+    %n10: double = call Subtract_DoubleDouble(A: $Inset, B: 50) @(1880, 184)
+    %n11: double = call Multiply_DoubleDouble(A: $Inset, B: 0.5) @(1688, 288)
+    %n12: double = call Add_DoubleDouble(A: %n11, B: 300) @(1872, 304)
+    %n13: double = call Divide_DoubleDouble(A: %n7, B: 200) @(1872, 424)
+    call Place(Component: $RoofCorner, X: %n10, Y: %n10, Z: %n12, Yaw: 0, SX: %n13, SY: %n13, SZ: %n13) @(2056, -16)
+    %n14: double = call Add_DoubleDouble(A: %n10, B: %n2) @(2384, 100)
+    call Place(Component: $RoofCorner, X: %n14, Y: %n10, Z: %n12, Yaw: 90, SX: %n13, SY: %n13, SZ: %n13) @(2528, -16)
+    %n15: double = call Add_DoubleDouble(A: %n10, B: %n4) @(2856, 132)
+    call Place(Component: $RoofCorner, X: %n14, Y: %n15, Z: %n12, Yaw: 180, SX: %n13, SY: %n13, SZ: %n13) @(3000, -16)
+    call Place(Component: $RoofCorner, X: %n10, Y: %n15, Z: %n12, Yaw: 270, SX: %n13, SY: %n13, SZ: %n13) @(3328, -16)
+    %n16: double = call Add_DoubleDouble(A: %n10, B: %n7) @(3824, 100)
+    %n17: double = call Multiply_DoubleDouble(A: %n7, B: 2) @(3656, 240)
+    %n18: double = call Subtract_DoubleDouble(A: %n4, B: %n17) @(3824, 224)
+    call RoofEdge(X: %n10, Y: %n16, Z: %n12, Yaw: 0, Length: %n18, Depth: %n7) @(3968, -16)
+    %n19: double = call Subtract_DoubleDouble(A: %n14, B: %n7) @(4296, 68)
+    %n20: double = call Subtract_DoubleDouble(A: %n2, B: %n17) @(4296, 196)
+    call RoofEdge(X: %n19, Y: %n10, Z: %n12, Yaw: 90, Length: %n20, Depth: %n7) @(4440, -16)
+    %n21: double = call Subtract_DoubleDouble(A: %n15, B: %n7) @(4768, 100)
+    call RoofEdge(X: %n14, Y: %n21, Z: %n12, Yaw: 180, Length: %n18, Depth: %n7) @(4912, -16)
+    call RoofEdge(X: %n16, Y: %n15, Z: %n12, Yaw: 270, Length: %n20, Depth: %n7) @(5240, -16)
+    return @(5568, 0)
+
+@else:
+    return @(1688, 32)
+}
+
+entry function BuildRoof() @(0, 0) {
+    %n0 = branch($RoofEnabled) [false -> @merge, true -> @then] @(440, 0)
+
+@then:
+    %n1: double = call Add_DoubleDouble(A: $W, B: 100) @(8, 176)
+    %n2: double = call Divide_DoubleDouble(A: %n1, B: 400) @(192, 180)
+    %n3: int = call FCeil(A: %n2) @(376, 176)
+    %n4: int = call Subtract_IntInt(A: %n3, B: 1) @(584, 188)
+    %n5: int = macro ForLoop(FirstIndex: 0, LastIndex: %n4) [Completed -> @completed, LoopBody -> @loopbody] @(752, 120)
+
+@merge:
+    return @(1072, 312)
+
+@loopbody:
+    %n6: double = call Conv_IntToDouble(InInt: %n5.Index) @(816, 32)
+    %n7: double = call Multiply_DoubleDouble(A: %n6, B: 200) @(1072, 188)
+    call RoofRing(Inset: %n7) @(1256, 104)
+    end
+
+@completed:
+    exec -> @merge
+}
+
+entry function BuildFloors() @(0, 0) {
+    %n0: int = call Subtract_IntInt(A: $WidthMetres, B: 1) @(136, 132)
+    %n1: int = macro ForLoop(FirstIndex: 0, LastIndex: %n0) [Completed -> @completed, LoopBody -> @loopbody] @(304, 0)
+
+@loopbody:
+    %n2: int = call Subtract_IntInt(A: $LengthMetres, B: 1) @(832, 188)
+    %n3: int = macro ForLoop(FirstIndex: 0, LastIndex: %n2) [LoopBody -> @loopbody_2] @(1000, 0)
+
+@completed:
+    return @(624, 296)
+
+@loopbody_2:
+    %n4: double = call Conv_IntToDouble(InInt: %n1.Index) @(592, 32)
+    %n5: double = call Multiply_DoubleDouble(A: %n4, B: 100) @(1328, 184)
+    %n6: double = call Conv_IntToDouble(InInt: %n3.Index) @(816, 96)
+    %n7: double = call Multiply_DoubleDouble(A: %n6, B: 100) @(1328, 304)
+    call Place(Component: $Floor, X: %n5, Y: %n7, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1) @(1512, -16)
+    call Place(Component: $Ceiling, X: %n5, Y: %n7, Z: 300, Yaw: 0, SX: 1, SY: 1, SZ: 1) @(2032, -16)
+    end
+}
+
+@meta(Category="House Generator")
+entry function ConfigurePlot(int PlotSeed, int PlotWidthMetres, int PlotLengthMetres) @(0, 0) {
+    set Seed = $PlotSeed @(280, 0)
+    set WidthMetres = $PlotWidthMetres @(560, 0)
+    set LengthMetres = $PlotLengthMetres @(872, 0)
+    call RegenerateBuilding() @(1192, -16)
+    end
+}
+
+entry function RoomIsValid(struct<ST_HouseRoom> Room) -> bool @(0, 0) {
+    %n0: name = break<ST_HouseRoom>($Room) @(240, 504)
+    %n1: double = call BreakVector(InVec: %n0.Min_4_CA1734C84A7EB842FDFAA89748F89847) @(528, 536)
+    %n2: double = call Conv_IntToDouble(InInt: $WidthMetres) @(0, 592)
+    %n3: double = call Multiply_DoubleDouble(A: %n2, B: 100) @(720, 124)
+    %n4: bool = call InRange_FloatFloat(Value: %n1.X, Min: 0, Max: %n3, InclusiveMin: true, InclusiveMax: true) @(904, 56)
+    %n5: double = call Conv_IntToDouble(InInt: $LengthMetres) @(0, 720)
+    %n6: double = call Multiply_DoubleDouble(A: %n5, B: 100) @(720, 680)
+    %n7: bool = call InRange_FloatFloat(Value: %n1.Y, Min: 0, Max: %n6, InclusiveMin: true, InclusiveMax: true) @(904, 304)
+    %n8: bool = call BooleanAND(A: %n4, B: %n7) @(1216, 56)
+    %n9: double = call BreakVector(InVec: %n0.Size_6_A050281547D25A85B4448B81EF60035D) @(528, 720)
+    %n10: double = call Add_DoubleDouble(A: %n1.X, B: %n9.X) @(760, 556)
+    %n11: bool = call InRange_FloatFloat(Value: %n10, Min: 0, Max: %n3, InclusiveMin: true, InclusiveMax: true) @(904, 552)
+    %n12: double = call Add_DoubleDouble(A: %n1.Y, B: %n9.Y) @(760, 804)
+    %n13: bool = call InRange_FloatFloat(Value: %n12, Min: 0, Max: %n6, InclusiveMin: true, InclusiveMax: true) @(904, 800)
+    %n14: bool = call BooleanAND(A: %n11, B: %n13) @(1216, 176)
+    %n15: bool = call BooleanAND(A: %n8, B: %n14) @(1360, 56)
+    %n16 = branch(%n15) [false -> @else, true -> @then] @(1504, 0)
+
+@then:
+    %n17: bool = call EqualEqual_NameName(A: %n0.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Hallway") @(1760, 56)
+    %n18 = branch(%n17) [false -> @else_2, true -> @then_2] @(1968, 0)
+
+@else:
+    return false @(1760, 176)
+
+@then_2:
+    return true @(2224, 0)
+
+@else_2:
+    %n19: double = call Subtract_DoubleDouble(A: %n9.X, B: 45) @(3096, 92)
+    %n20: double = call Conv_IntToDouble(InInt: $MinRoomMetres) @(448, 208)
+    %n21: double = call Multiply_DoubleDouble(A: %n20, B: 100) @(3088, 216)
+    %n22: double = call Conv_IntToDouble(InInt: $MaxRoomMetres) @(448, 336)
+    %n23: double = call Multiply_DoubleDouble(A: %n22, B: 100) @(3088, 336)
+    %n24: bool = call InRange_FloatFloat(Value: %n19, Min: %n21, Max: %n23, InclusiveMin: true, InclusiveMax: true) @(3272, 88)
+    %n25: bool = call EqualEqual_DoubleDouble(A: %n1.Y, B: 0) @(2224, 504)
+    %n26: double = select(Index: %n25, false: 0.0, true: 15.0) @(2392, 436)
+    %n27: bool = call EqualEqual_DoubleDouble(A: %n12, B: %n6) @(2248, 692)
+    %n28: double = select(Index: %n27, false: 0.0, true: 15.0) @(2392, 624)
+    %n29: double = call Add_DoubleDouble(A: %n26, B: %n28) @(2704, 456)
+    %n30: double = call Add_DoubleDouble(A: %n29, B: 30) @(2856, 472)
+    %n31: double = call Subtract_DoubleDouble(A: %n9.Y, B: %n30) @(3128, 456)
+    %n32: bool = call InRange_FloatFloat(Value: %n31, Min: %n21, Max: %n23, InclusiveMin: true, InclusiveMax: true) @(3272, 336)
+    %n33: bool = call BooleanAND(A: %n24, B: %n32) @(3584, 88)
+    %n34: double = call BreakVector(InVec: %n0.DoorCenter_8_16660F964D81C9BEF3895C9A21215F87) @(3080, 784)
+    %n35: double = call Conv_IntToDouble(InInt: $PlanLeftWidthUnits) @(448, 1184)
+    %n36: double = call Multiply_DoubleDouble(A: %n35, B: 50) @(2672, 584)
+    %n37: double = call Add_DoubleDouble(A: %n36, B: 200) @(2848, 600)
+    %n38: bool = call EqualEqual_DoubleDouble(A: %n1.X, B: 0) @(2864, 720)
+    %n39: double = select(Index: %n38, false: %n37, true: %n36) @(3032, 596)
+    %n40: bool = call EqualEqual_DoubleDouble(A: %n34.X, B: %n39) @(3440, 584)
+    %n41: double = call Add_DoubleDouble(A: %n1.Y, B: 150) @(3088, 968)
+    %n42: double = call Subtract_DoubleDouble(A: %n12, B: 150) @(3088, 1088)
+    %n43: bool = call InRange_FloatFloat(Value: %n34.Y, Min: %n41, Max: %n42, InclusiveMin: true, InclusiveMax: true) @(3272, 704)
+    %n44: bool = call BooleanAND(A: %n40, B: %n43) @(3584, 208)
+    %n45: bool = call BooleanAND(A: %n33, B: %n44) @(3728, 88)
+    return %n45 @(3872, 32)
+}
+
+entry function RoomsOverlap(struct<ST_HouseRoom> A, struct<ST_HouseRoom> B) -> bool @(0, 0) {
+    %n0: name = break<ST_HouseRoom>($A) @(240, 392)
+    %n1: double = call BreakVector(InVec: %n0.Min_4_CA1734C84A7EB842FDFAA89748F89847) @(528, 424)
+    %n2: name = break<ST_HouseRoom>($B) @(240, 56)
+    %n3: double = call BreakVector(InVec: %n2.Min_4_CA1734C84A7EB842FDFAA89748F89847) @(528, 52)
+    %n4: double = call BreakVector(InVec: %n2.Size_6_A050281547D25A85B4448B81EF60035D) @(528, 240)
+    %n5: double = call Add_DoubleDouble(A: %n3.X, B: %n4.X) @(720, 72)
+    %n6: bool = call Less_DoubleDouble(A: %n1.X, B: %n5) @(864, 56)
+    %n7: double = call BreakVector(InVec: %n0.Size_6_A050281547D25A85B4448B81EF60035D) @(528, 608)
+    %n8: double = call Add_DoubleDouble(A: %n1.X, B: %n7.X) @(720, 192)
+    %n9: bool = call Less_DoubleDouble(A: %n3.X, B: %n8) @(864, 176)
+    %n10: bool = call BooleanAND(A: %n6, B: %n9) @(1008, 56)
+    %n11: double = call Add_DoubleDouble(A: %n3.Y, B: %n4.Y) @(720, 312)
+    %n12: bool = call Less_DoubleDouble(A: %n1.Y, B: %n11) @(864, 296)
+    %n13: double = call Add_DoubleDouble(A: %n1.Y, B: %n7.Y) @(720, 432)
+    %n14: bool = call Less_DoubleDouble(A: %n3.Y, B: %n13) @(864, 416)
+    %n15: bool = call BooleanAND(A: %n12, B: %n14) @(1008, 176)
+    %n16: bool = call BooleanAND(A: %n10, B: %n15) @(1152, 56)
+    return %n16 @(1296, 0)
+}
+
+entry function ValidatePendingPlan() @(0, 0) {
+    set PlanPassed = true @(248, 192)
+    set PlanArea = 0 @(592, 192)
+    %n0: int = call Array_Length(TargetArray: $PendingRooms) @(1336, 68)
+    %n1: int = call Add_IntInt(A: $RoomCount, B: 1) @(1096, 264)
+    %n2: bool = call EqualEqual_IntInt(A: %n0, B: %n1) @(1264, 248)
+    %n3 = branch(%n2) [false -> @else, true -> @then] @(1408, 192)
+
+@then:
+    %n4: int = call Subtract_IntInt(A: %n0, B: 1) @(1480, 68)
+    %n5: int = macro ForLoop(FirstIndex: 0, LastIndex: %n4) [Completed -> @completed, LoopBody -> @loopbody] @(1648, 0)
+
+@else:
+    set PlanPassed = false @(1664, 224)
+    return @(2016, 224)
+
+@loopbody:
+    %n6: struct<ST_HouseRoom> = call Array_Get(TargetArray: $PendingRooms, Index: %n5.Index) @(1968, 68)
+    %n7: bool = call RoomIsValid(Room: %n6.Item) @(2112, -16)
+    %n8: bool = call BooleanAND(A: $PlanPassed, B: %n7) @(2440, 56)
+    set PlanPassed = %n8 @(2584, 0)
+    %n9: name = break<ST_HouseRoom>(%n6.Item) @(2888, 56)
+    %n10: double = call BreakVector(InVec: %n9.Size_6_A050281547D25A85B4448B81EF60035D) @(3176, 52)
+    %n11: double = call Multiply_DoubleDouble(A: %n10.X, B: %n10.Y) @(3368, 72)
+    %n12: double = call Add_DoubleDouble(A: $PlanArea, B: %n11) @(3512, 56)
+    set PlanArea = %n12 @(3656, 0)
+    %n13: int = call Add_IntInt(A: %n5.Index, B: 1) @(3944, 56)
+    %n14: int = macro ForLoop(FirstIndex: %n13, LastIndex: %n4) [LoopBody -> @loopbody_2] @(4112, 0)
+
+@completed:
+    %n15: double = call Conv_IntToDouble(InInt: $WidthMetres) @(2240, 336)
+    %n16: double = call Conv_IntToDouble(InInt: $LengthMetres) @(2240, 400)
+    %n17: double = call Multiply_DoubleDouble(A: %n15, B: %n16) @(1968, 696)
+    %n18: double = call Multiply_DoubleDouble(A: %n17, B: 10000) @(2112, 712)
+    %n19: bool = call EqualEqual_DoubleDouble(A: $PlanArea, B: %n18) @(2360, 608)
+    %n20: bool = call BooleanAND(A: $PlanPassed, B: %n19) @(2504, 488)
+    set PlanPassed = %n20 @(2648, 272)
+    return @(2952, 272)
+
+@loopbody_2:
+    %n21: struct<ST_HouseRoom> = call Array_Get(TargetArray: $PendingRooms, Index: %n14.Index) @(4408, 100)
+    %n22: bool = call RoomsOverlap(A: %n6.Item, B: %n21.Item) @(4552, -16)
+    %n23: bool = call Not_PreBool(A: %n22) @(4880, 88)
+    %n24: bool = call BooleanAND(A: $PlanPassed, B: %n23) @(5024, 56)
+    set PlanPassed = %n24 @(5168, 0)
+    end
+}
+
+entry function BuildPlan() @(0, 0) {
+    set LayoutValid = false @(240, 672)
+    %n0: bool = call EqualEqual_IntInt(A: $Floors, B: 1) @(784, 728)
+    %n1 = branch(%n0) [false -> @else, true -> @then] @(952, 672)
+
+@then:
+    %n2: bool = call InRange_IntInt(Value: $RoomCount, Min: 3, Max: 8, InclusiveMin: true, InclusiveMax: true) @(1208, 728)
+    %n3 = branch(%n2) [false -> @else_2, true -> @then_2] @(1520, 672)
+
+@else:
+    set GenerationStatus = "Cannot generate: only one floor is supported. Previous building retained." @(1208, 1224)
+    return @(1784, 1224)
+
+@then_2:
+    %n4: bool = call InRange_IntInt(Value: $WidthMetres, Min: 6, Max: 30, InclusiveMin: true, InclusiveMax: true) @(1776, 728)
+    %n5: bool = call InRange_IntInt(Value: $LengthMetres, Min: 4, Max: 40, InclusiveMin: true, InclusiveMax: true) @(1776, 976)
+    %n6: bool = call BooleanAND(A: %n4, B: %n5) @(2088, 728)
+    %n7 = branch(%n6) [false -> @else_3, true -> @then_3] @(2232, 672)
+
+@else_2:
+    set GenerationStatus = "Cannot generate: RoomCount must be 3-8, excluding hallway. Three rooms use a combined living/kitchen. Previous building retained." @(1776, 1376)
+    return @(2352, 1376)
+
+@then_3:
+    %n8: bool = call InRange_IntInt(Value: $MinRoomMetres, Min: 2, Max: 12, InclusiveMin: true, InclusiveMax: true) @(2720, 728)
+    %n9: bool = call InRange_IntInt(Value: $MaxRoomMetres, Min: $MinRoomMetres, Max: 20, InclusiveMin: true, InclusiveMax: true) @(2720, 976)
+    %n10: bool = call BooleanAND(A: %n8, B: %n9) @(3032, 728)
+    %n11 = branch(%n10) [false -> @else_4, true -> @then_4] @(3176, 672)
+
+@else_3:
+    set GenerationStatus = "Cannot generate: width must be 6-30m and length 4-40m in whole metres; room-size constraints must also fit. Previous building retained." @(2488, 1224)
+    return @(3064, 1224)
+
+@then_4:
+    %n12: double = call Conv_IntToDouble(InInt: $MinRoomMetres) @(1120, 336)
+    %n13: double = call Multiply_DoubleDouble(A: %n12, B: 100) @(3432, 728)
+    %n14: double = call Add_DoubleDouble(A: %n13, B: 45) @(3616, 728)
+    %n15: double = call Divide_DoubleDouble(A: %n14, B: 50) @(3792, 732)
+    %n16: int = call FCeil(A: %n15) @(3968, 728)
+    %n17: int = call Max(A: %n16, B: 7) @(4176, 728)
+    set PlanMinUnits = %n17 @(4344, 672)
+    %n18: double = call Conv_IntToDouble(InInt: $MaxRoomMetres) @(1344, 400)
+    %n19: double = call Multiply_DoubleDouble(A: %n18, B: 100) @(4664, 728)
+    %n20: double = call Add_DoubleDouble(A: %n19, B: 30) @(4848, 728)
+    %n21: double = call Divide_DoubleDouble(A: %n20, B: 50) @(5024, 732)
+    %n22: int = call FFloor(A: %n21) @(5200, 728)
+    set PlanMaxUnits = %n22 @(5408, 672)
+    %n23: int = call Multiply_IntInt(A: $WidthMetres, B: 2) @(8032, 348)
+    %n24: int = call Subtract_IntInt(A: %n23, B: 4) @(8200, 364)
+    %n25: int = call Subtract_IntInt(A: %n24, B: $PlanMaxUnits) @(8368, 380)
+    %n26: int = call Max(A: $PlanMinUnits, B: %n25) @(8512, 364)
+    %n27: int = call Subtract_IntInt(A: %n24, B: $PlanMinUnits) @(8368, 504)
+    %n28: int = call Min(A: $PlanMaxUnits, B: %n27) @(8512, 488)
+    %n29: bool = call LessEqual_IntInt(A: %n26, B: %n28) @(5728, 728)
+    %n30 = branch(%n29) [false -> @else_5, true -> @then_5] @(5872, 672)
+
+@else_4:
+    set GenerationStatus = "Cannot generate: MinRoomMetres must be 2-12; MaxRoomMetres must be at least MinRoomMetres and at most 20. These are clear interior dimensions. Previous building retained." @(3432, 856)
+    return @(4008, 856)
+
+@then_5:
+    call Array_Clear(TargetArray: $CandidateCounts) @(6128, 692)
+    %n31: int = call Subtract_IntInt(A: $RoomCount, B: 1) @(4184, 68)
+    %n32: int = macro ForLoop(FirstIndex: 1, LastIndex: %n31) [Completed -> @completed, LoopBody -> @loopbody] @(4352, 0)
+
+@else_5:
+    set GenerationStatus = "Cannot generate: width cannot fit two room wings plus a 2m hallway within room-size bounds. Each structural wing needs at least 3.5m for door clearance. Adjust width or room limits. Previous building retained." @(6128, 816)
+    return @(6704, 816)
+
+@loopbody:
+    %n33: int = call Multiply_IntInt(A: $LengthMetres, B: 2) @(4880, 1280)
+    %n34: int = call Multiply_IntInt(A: %n32.Index, B: $PlanMinUnits) @(4904, 1036)
+    %n35: int = call Multiply_IntInt(A: %n32.Index, B: $PlanMaxUnits) @(4904, 1160)
+    %n36: bool = call InRange_IntInt(Value: %n33, Min: %n34, Max: %n35, InclusiveMin: true, InclusiveMax: true) @(5048, 1000)
+    %n37: int = call Subtract_IntInt(A: $RoomCount, B: %n32.Index) @(4736, 1504)
+    %n38: int = call Multiply_IntInt(A: %n37, B: $PlanMinUnits) @(4904, 1400)
+    %n39: int = call Multiply_IntInt(A: %n37, B: $PlanMaxUnits) @(4904, 1520)
+    %n40: bool = call InRange_IntInt(Value: %n33, Min: %n38, Max: %n39, InclusiveMin: true, InclusiveMax: true) @(5048, 1248)
+    %n41: bool = call BooleanAND(A: %n36, B: %n40) @(5360, 1000)
+    %n42 = branch(%n41) [true -> @then_6] @(5504, 0)
+
+@completed:
+    %n43: int = call Array_Length(TargetArray: $CandidateCounts) @(4896, 424)
+    %n44: bool = call Greater_IntInt(A: %n43, B: 0) @(5040, 424)
+    %n45 = branch(%n44) [false -> @else_6, true -> @then_7] @(5208, 296)
+
+@then_6:
+    call Array_Add(TargetArray: $CandidateCounts, NewItem: %n32.Index) @(5760, 20)
+    end
+
+@then_7:
+    %n46: struct<RandomStream> = call MakeRandomStream(InitialSeed: $Seed) @(5656, 352)
+    set Stream = %n46 @(5912, 296)
+    %n47: int = call Subtract_IntInt(A: %n43, B: 1) @(6192, 396)
+    %n48: int = call DrawInt(Low: 0, High: %n47) @(6360, 280)
+    %n49: int = call Array_Get(TargetArray: $CandidateCounts, Index: %n48) @(6688, 352)
+    set PlanLeftCount = %n49.Item @(6832, 296)
+    %n50: int = call Subtract_IntInt(A: $RoomCount, B: $PlanLeftCount) @(7360, 352)
+    set PlanRightCount = %n50 @(7504, 296)
+    %n51: int = call DrawInt(Low: %n26, High: %n28) @(8656, 280)
+    set PlanLeftWidthUnits = %n51 @(8984, 296)
+    call Array_Clear(TargetArray: $PendingRooms) @(9552, 316)
+    call PlanWing(LeftWing: true, Count: $PlanLeftCount) @(9744, 296)
+    call PlanWing(LeftWing: false, Count: $PlanRightCount) @(10288, 296)
+    %n52: double = call Conv_IntToDouble(InInt: $PlanLeftWidthUnits) @(4944, 912)
+    %n53: double = call Multiply_DoubleDouble(A: %n52, B: 50) @(10656, 524)
+    %n54: double = call Conv_IntToDouble(InInt: $LengthMetres) @(4944, 336)
+    %n55: double = call Multiply_DoubleDouble(A: %n54, B: 100) @(10648, 700)
+    %n56: double = call Add_DoubleDouble(A: %n53, B: 100) @(10928, 540)
+    %n57: double = select(Index: $EntranceAtRear, false: 0.0, true: %n55) @(10832, 664)
+    call AddPlannedRoom(Kind: "Hallway", X: %n53, Y: 0, Width: 200, Depth: %n55, DoorX: %n56, DoorY: %n57) @(11112, 296)
+    call ValidatePendingPlan() @(11440, 296)
+    %n58 = branch($PlanPassed) [false -> @else_7, true -> @then_8] @(11960, 312)
+
+@else_6:
+    set GenerationStatus = "Cannot generate: no split of RoomCount between two wings fits this length and room limits (3.5m minimum structural depth). Adjust length, room count or size bounds. Previous building retained." @(5464, 520)
+    return @(6040, 520)
+
+@then_8:
+    set Rooms = $PendingRooms @(12216, 312)
+    %n59: double = call Conv_IntToDouble(InInt: $WidthMetres) @(5840, 208)
+    %n60: double = call Multiply_DoubleDouble(A: %n59, B: 100) @(12496, 368)
+    set W = %n60 @(12680, 312)
+    set L = %n55 @(12960, 312)
+    set SideWidth = %n53 @(13240, 312)
+    set LayoutValid = true @(13536, 312)
+    return @(13880, 312)
+
+@else_7:
+    set GenerationStatus = "Cannot generate: candidate failed bounds, clearance, overlap or coverage validation. Previous building retained." @(12216, 488)
+    return @(12792, 488)
+}
+
+entry function OpeningAt(float X, float Y, float Yaw, float Length, bool ExteriorDoor, float CenterAlong) @(0, 0) {
+    %n0: object<InstancedStaticMeshComponent> = select(Index: $ExteriorDoor, false: $Interior, true: $Exterior) @(440, 64)
+    %n1: double = call Add_DoubleDouble(A: $CenterAlong, B: 0) @(272, 304)
+    %n2: double = call Subtract_DoubleDouble(A: %n1, B: 150) @(496, 248)
+    call Strip(Component: %n0, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Length: %n2) @(680, -16)
+    %n3: object<InstancedStaticMeshComponent> = select(Index: $ExteriorDoor, false: $Doorway, true: $Entrance) @(1200, 64)
+    call PlaceOffset(Component: %n3, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n2, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1) @(1440, -16)
+    %n4: double = call Add_DoubleDouble(A: %n1, B: 150) @(1768, 116)
+    %n5: struct<Vector> = call MakeVector(X: %n4, Y: 0, Z: 0) @(2008, 112)
+    %n6: struct<Rotator> = call MakeRotator(Roll: 0.0, Pitch: 0.0, Yaw: $Yaw) @(1952, 296)
+    %n7: struct<Vector> = call GreaterGreater_VectorRotator(A: %n5, B: %n6) @(2232, 112)
+    %n8: double = call BreakVector(InVec: %n7) @(2440, 112)
+    %n9: double = call Add_DoubleDouble(A: $X, B: %n8.X) @(2632, 100)
+    %n10: double = call Add_DoubleDouble(A: $Y, B: %n8.Y) @(2632, 224)
+    %n11: double = call Subtract_DoubleDouble(A: $Length, B: %n4) @(2632, 344)
+    call Strip(Component: %n0, X: %n9, Y: %n10, Z: 20, Yaw: $Yaw, Length: %n11) @(2776, -16)
+    %n12: double = call Subtract_DoubleDouble(A: %n1, B: 50) @(3120, 228)
+    call PlaceOffset(Component: $DoorFrame, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n12, Across: 10, Turn: 0, SX: 1, SY: 1, SZ: 1) @(3296, -16)
+    %n13 = branch($ShowOpenDoors) [false -> @else, true -> @then] @(3848, 0)
+
+@then:
+    call PlaceOffset(Component: $DoorLeaf, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n12, Across: 10, Turn: -90, SX: 1, SY: 1, SZ: 1) @(4296, -16)
+    end
+
+@else:
+    return @(4104, 184)
+}
+
+entry function BuildRoomWalls(struct<ST_HouseRoom> Room) @(0, 0) {
+    %n0: name = break<ST_HouseRoom>($Room) @(240, 56)
+    %n1: double = call BreakVector(InVec: %n0.Min_4_CA1734C84A7EB842FDFAA89748F89847) @(528, 56)
+    %n2: bool = call EqualEqual_DoubleDouble(A: %n1.X, B: 0) @(720, 56)
+    %n3 = branch(%n2) [false -> @else, true -> @then] @(888, 0)
+
+@then:
+    %n4: double = call Add_DoubleDouble(A: $SideWidth, B: 15) @(1352, 68)
+    %n5: double = call BreakVector(InVec: %n0.Size_6_A050281547D25A85B4448B81EF60035D) @(1336, 192)
+    call Opening(X: %n4, Y: %n1.Y, Yaw: 90, Length: %n5.Y, ExteriorDoor: false) @(1528, -16)
+    %n6: double = call Add_DoubleDouble(A: %n1.Y, B: %n5.Y) @(1176, 600)
+    %n7: double = call Subtract_DoubleDouble(A: $L, B: 100) @(2048, 164)
+    %n8: double = call FMin(A: %n6, B: %n7) @(2272, 148)
+    %n9: double = call FMax(A: %n1.Y, B: 100) @(2232, 272)
+    %n10: double = call Subtract_DoubleDouble(A: %n8, B: %n9) @(2416, 164)
+    call Facade(X: 0, Y: %n8, Yaw: 270, Length: %n10) @(2560, -16)
+    exec -> @merge
+
+@else:
+    %n11: double = call Subtract_DoubleDouble(A: %n1.X, B: 15) @(1144, 476)
+    call Opening(X: %n11, Y: %n6, Yaw: 270, Length: %n5.Y, ExteriorDoor: false) @(1320, 392)
+    %n12: double = call FMax(A: %n1.Y, B: 100) @(1832, 696)
+    %n13: double = call Subtract_DoubleDouble(A: $L, B: 100) @(1648, 592)
+    %n14: double = call FMin(A: %n6, B: %n13) @(1872, 576)
+    %n15: double = call Subtract_DoubleDouble(A: %n14, B: %n12) @(2064, 592)
+    call Facade(X: $W, Y: %n12, Yaw: 90, Length: %n15) @(2208, 392)
+    exec -> @merge
+
+@merge:
+    %n16: bool = call Less_DoubleDouble(A: %n6, B: $L) @(2888, 56)
+    %n17 = branch(%n16) [false -> @else_2, true -> @then_2] @(3032, 0)
+
+@then_2:
+    %n18: double = call Subtract_DoubleDouble(A: %n6, B: 15) @(3304, 184)
+    call Strip(Component: $Interior, X: %n1.X, Y: %n18, Z: 20, Yaw: 0, Length: %n5.X) @(3480, -16)
+    end
+
+@else_2:
+    return @(3288, 304)
+}
+
+entry function BuildShell() @(0, 0) {
+    call Place(Component: $Corner, X: 0, Y: 0, Z: 20, Yaw: 0, SX: 1, SY: 1, SZ: 1) @(432, -16)
+    call Place(Component: $Corner, X: $W, Y: 0, Z: 20, Yaw: 90, SX: 1, SY: 1, SZ: 1) @(952, -16)
+    call Place(Component: $Corner, X: $W, Y: $L, Z: 20, Yaw: 180, SX: 1, SY: 1, SZ: 1) @(1472, -16)
+    call Place(Component: $Corner, X: 0, Y: $L, Z: 20, Yaw: 270, SX: 1, SY: 1, SZ: 1) @(1800, -16)
+    %n0 = branch($EntranceAtRear) [false -> @else, true -> @then] @(2344, 0)
+
+@then:
+    %n1: double = call Subtract_DoubleDouble(A: $W, B: 200) @(2608, 228)
+    call Strip(Component: $Exterior, X: 100, Y: 0, Z: 20, Yaw: 0, Length: %n1) @(2792, -16)
+    %n2: double = call Subtract_DoubleDouble(A: $W, B: 100) @(3264, 68)
+    %n3: double = call Subtract_DoubleDouble(A: $W, B: $SideWidth) @(3120, 212)
+    %n4: double = call Subtract_DoubleDouble(A: %n3, B: 200) @(3264, 228)
+    call OpeningAt(X: %n2, Y: $L, Yaw: 180, Length: %n1, ExteriorDoor: true, CenterAlong: %n4) @(3448, -16)
+    exec -> @merge
+
+@else:
+    call OpeningAt(X: 100, Y: 0, Yaw: 0, Length: %n1, ExteriorDoor: true, CenterAlong: $SideWidth) @(2792, 352)
+    call Strip(Component: $Exterior, X: %n2, Y: $L, Z: 20, Yaw: 180, Length: %n1) @(3120, 352)
+    exec -> @merge
+
+@merge:
+    %n5: int = call Subtract_IntInt(A: $RoomCount, B: 1) @(4184, 68)
+    %n6: int = macro ForLoop(FirstIndex: 0, LastIndex: %n5) [Completed -> @completed, LoopBody -> @loopbody] @(4352, 0)
+
+@loopbody:
+    %n7: struct<ST_HouseRoom> = call Array_Get(TargetArray: $Rooms, Index: %n6.Index) @(4864, 68)
+    call BuildRoomWalls(Room: %n7.Item) @(5008, -16)
+    end
+
+@completed:
+    return @(4672, 176)
+}
+
+@meta(Category="House Generator")
+@flags(Public, CallInEditor)
+entry function RegenerateBuilding() @(0, 0) {
+    call BeginTransaction(Context: "ResidentialGenerator", Description: "NSLOCTEXT(\"AshwoodHousing\", \"Regenerate\", \"Regenerate residential building\")", PrimaryObject: self) @(432, 0)
+    call TransactObject(Object: self) @(984, 0)
+    call BuildPlan() @(1224, -16)
+    %n0 = branch($LayoutValid) [false -> @merge, true -> @then] @(1744, 0)
+
+@then:
+    call ClearGeometry() @(2000, -16)
+    call SetMaterial(Target: $Floor, ElementIndex: 1, Material: $FloorMaterial) @(2528, -16)
+    call SetMaterial(Target: $Exterior, ElementIndex: 1, Material: $ExteriorMaterial) @(3048, -16)
+    call SetMaterial(Target: $Entrance, ElementIndex: 1, Material: $ExteriorMaterial) @(3544, -16)
+    call SetMaterial(Target: $Window, ElementIndex: 1, Material: $ExteriorMaterial) @(4040, -16)
+    call SetMaterial(Target: $Corner, ElementIndex: 1, Material: $ExteriorMaterial) @(4536, -16)
+    call SetVisibility(Target: $RoofPanel, bNewVisibility: true, bPropagateToChildren: false) @(5032, -16)
+    call SetVisibility(Target: $RoofCorner, bNewVisibility: true, bPropagateToChildren: false) @(5584, -16)
+    call SetVisibility(Target: $Ceiling, bNewVisibility: true, bPropagateToChildren: false) @(6136, -16)
+    call BuildFloors() @(6496, -16)
+    call BuildShell() @(6824, -16)
+    call BuildRoof() @(7152, -16)
+    %n1: string = call Conv_IntToString(InInt: $RoomCount) @(7672, 108)
+    %n2: string = call Concat_StrStr(A: "Generated rooms (excluding hallway): ", B: %n1) @(7816, 56)
+    set GenerationStatus = %n2 @(8256, 0)
+    exec -> @merge
+
+@merge:
+    call EndTransaction() @(8592, 0)
+    return @(8880, 0)
+}
+
+entry function ClearGeometry() @(0, 0) {
+    call TransactObject(Object: $Ceiling) @(432, 0)
+    call ClearInstances(Target: $Ceiling) @(672, -16)
+    call TransactObject(Object: $Floor) @(1248, 0)
+    call ClearInstances(Target: $Floor) @(1488, -16)
+    call TransactObject(Object: $Exterior) @(2064, 0)
+    call ClearInstances(Target: $Exterior) @(2304, -16)
+    call TransactObject(Object: $Interior) @(2880, 0)
+    call ClearInstances(Target: $Interior) @(3120, -16)
+    call TransactObject(Object: $Corner) @(3696, 0)
+    call ClearInstances(Target: $Corner) @(3936, -16)
+    call TransactObject(Object: $Entrance) @(4512, 0)
+    call ClearInstances(Target: $Entrance) @(4752, -16)
+    call TransactObject(Object: $Doorway) @(5328, 0)
+    call ClearInstances(Target: $Doorway) @(5568, -16)
+    call TransactObject(Object: $Window) @(6144, 0)
+    call ClearInstances(Target: $Window) @(6384, -16)
+    call TransactObject(Object: $Frame) @(6960, 0)
+    call ClearInstances(Target: $Frame) @(7200, -16)
+    call TransactObject(Object: $Glass) @(7776, 0)
+    call ClearInstances(Target: $Glass) @(8016, -16)
+    call TransactObject(Object: $DoorFrame) @(8592, 0)
+    call ClearInstances(Target: $DoorFrame) @(8832, -16)
+    call TransactObject(Object: $DoorLeaf) @(9408, 0)
+    call ClearInstances(Target: $DoorLeaf) @(9648, -16)
+    call TransactObject(Object: $RoofPanel) @(10224, 0)
+    call ClearInstances(Target: $RoofPanel) @(10464, -16)
+    call TransactObject(Object: $RoofCorner) @(11040, 0)
+    call ClearInstances(Target: $RoofCorner) @(11280, -16)
+    call TransactObject(Object: $Foundation) @(11856, 0)
+    call ClearInstances(Target: $Foundation) @(12096, -16)
+    end
+}
+
+entry function ChooseRoomDepth(int Low, int High, name Kind) -> int @(0, 0) {
+    %n0: bool = call EqualEqual_NameName(A: $Kind, B: "Bathroom") @(240, 56)
+    %n1 = branch(%n0) [false -> @else, true -> @then] @(456, 0)
+
+@then:
+    %n2: int = call Add_IntInt(A: $Low, B: $High) @(712, 84)
+    %n3: int = call Divide_IntInt(A: %n2, B: 2) @(856, 100)
+    %n4: int = call DrawInt(Low: $Low, High: %n3) @(1024, -16)
+    return %n4 @(1352, 0)
+
+@else:
+    %n5: bool = call EqualEqual_NameName(A: $Kind, B: "Bedroom") @(712, 288)
+    %n6 = branch(%n5) [false -> @else_2, true -> @then_2] @(928, 232)
+
+@then_2:
+    %n7: int = call DrawInt(Low: $Low, High: $High) @(1184, 216)
+    return %n7 @(1512, 232)
+
+@else_2:
+    %n8: int = call DrawInt(Low: %n3, High: $High) @(1184, 448)
+    return %n8 @(1512, 464)
+}
+
+entry function DrawInt(int Low, int High) -> int @(0, 0) {
+    %n0: int = call RandomIntegerInRangeFromStream(Stream: $Stream, Min: $Low, Max: $High) @(432, 56)
+    return %n0 @(736, 0)
+}
+
+entry function PickRoomType(bool LeftWing, int Index) -> name @(0, 0) {
+    %n0: bool = call EqualEqual_IntInt(A: $RoomCount, B: 3) @(432, 56)
+    %n1 = branch(%n0) [false -> @else, true -> @then] @(600, 0)
+
+@then:
+    %n2: bool = call EqualEqual_IntInt(A: $PlanLeftCount, B: 1) @(1064, 72)
+    %n3: bool = call EqualEqual_BoolBool(A: $LeftWing, B: %n2) @(1232, 56)
+    %n4 = branch(%n3) [false -> @else_2, true -> @then_2] @(1376, 0)
+
+@else:
+    %n5: bool = call EqualEqual_IntInt(A: $Index, B: 0) @(856, 400)
+    %n6 = branch(%n5) [false -> @else_3, true -> @then_3] @(1024, 344)
+
+@then_2:
+    return "LivingKitchen" @(1632, 0)
+
+@else_2:
+    %n7: bool = call EqualEqual_IntInt(A: $Index, B: 0) @(1632, 220)
+    %n8: name = select(Index: %n7, false: "Bathroom", true: "Bedroom") @(1800, 152)
+    return %n8 @(2112, 32)
+
+@then_3:
+    %n9: name = select(Index: $LeftWing, false: "Kitchen", true: "Living") @(1280, 400)
+    return %n9 @(1584, 344)
+
+@else_3:
+    %n10: bool = call Greater_IntInt(A: $PlanRightCount, B: 1) @(1496, 604)
+    %n11: bool = call NotEqual_BoolBool(A: $LeftWing, B: %n10) @(1688, 588)
+    %n12: bool = call EqualEqual_IntInt(A: $Index, B: 1) @(1664, 712)
+    %n13: bool = call BooleanAND(A: %n11, B: %n12) @(1832, 604)
+    %n14: name = select(Index: %n13, false: "Bedroom", true: "Bathroom") @(1976, 536)
+    return %n14 @(2288, 376)
+}
+
+entry function AddPlannedRoom(name Kind, float X, float Y, float Width, float Depth, float DoorX, float DoorY) @(0, 0) {
+    %n0: struct<Vector> = call MakeVector(X: $X, Y: $Y, Z: 20) @(248, 204)
+    %n1: struct<Vector> = call MakeVector(X: $Width, Y: $Depth, Z: 300) @(240, 388)
+    %n2: struct<Vector> = call MakeVector(X: $DoorX, Y: $DoorY, Z: 20) @(248, 572)
+    %n3: struct<ST_HouseRoom> = make<ST_HouseRoom>(RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B: $Kind, Min_4_CA1734C84A7EB842FDFAA89748F89847: %n0, Size_6_A050281547D25A85B4448B81EF60035D: %n1, DoorCenter_8_16660F964D81C9BEF3895C9A21215F87: %n2) @(480, 172)
+    call Array_Add(TargetArray: $PendingRooms, NewItem: %n3.ST_HouseRoom) @(768, 20)
+    end
+}
+
+entry function PlanWing(bool LeftWing, int Count) @(0, 0) {
+    %n0: int = call Multiply_IntInt(A: $LengthMetres, B: 2) @(448, 248)
+    set PlanRemainingUnits = %n0 @(616, 192)
+    set PlanCursorUnits = 0 @(976, 192)
+    %n1: int = call Subtract_IntInt(A: $Count, B: 1) @(1032, 68)
+    %n2: int = macro ForLoop(FirstIndex: 0, LastIndex: %n1) [Completed -> @completed, LoopBody -> @loopbody] @(1200, 0)
+
+@loopbody:
+    %n3: name = call PickRoomType(LeftWing: $LeftWing, Index: %n2.Index) @(1520, -16)
+    %n4: int = call Subtract_IntInt(A: %n1, B: %n2.Index) @(1912, 232)
+    %n5: int = call Multiply_IntInt(A: %n4, B: $PlanMaxUnits) @(2160, 100)
+    %n6: int = call Subtract_IntInt(A: $PlanRemainingUnits, B: %n5) @(2304, 84)
+    %n7: int = call Max(A: $PlanMinUnits, B: %n6) @(2448, 68)
+    %n8: int = call Multiply_IntInt(A: %n4, B: $PlanMinUnits) @(2160, 344)
+    %n9: int = call Subtract_IntInt(A: $PlanRemainingUnits, B: %n8) @(2304, 208)
+    %n10: int = call Min(A: $PlanMaxUnits, B: %n9) @(2448, 192)
+    %n11: int = call ChooseRoomDepth(Low: %n7, High: %n10, Kind: %n3) @(2592, -16)
+    set PlanPickedUnits = %n11 @(2920, 0)
+    %n12: double = call Conv_IntToDouble(InInt: $PlanLeftWidthUnits) @(1344, 336)
+    %n13: double = call Multiply_DoubleDouble(A: %n12, B: 50) @(3440, 376)
+    %n14: double = call Add_DoubleDouble(A: %n13, B: 200) @(3648, 392)
+    %n15: double = select(Index: $LeftWing, false: %n14, true: 0.0) @(4072, 96)
+    %n16: double = call Conv_IntToDouble(InInt: $PlanCursorUnits) @(1344, 848)
+    %n17: double = call Multiply_DoubleDouble(A: %n16, B: 50) @(3256, 752)
+    %n18: double = call Conv_IntToDouble(InInt: $LengthMetres) @(1344, 592)
+    %n19: double = call Multiply_DoubleDouble(A: %n18, B: 100) @(3432, 648)
+    %n20: double = call Conv_IntToDouble(InInt: $PlanPickedUnits) @(1344, 976)
+    %n21: double = call Multiply_DoubleDouble(A: %n20, B: 50) @(3256, 872)
+    %n22: double = call Add_DoubleDouble(A: %n17, B: %n21) @(3472, 768)
+    %n23: double = call Subtract_DoubleDouble(A: %n19, B: %n22) @(3688, 664)
+    %n24: double = select(Index: $EntranceAtRear, false: %n17, true: %n23) @(3832, 628)
+    %n25: double = call Conv_IntToDouble(InInt: $WidthMetres) @(1344, 528)
+    %n26: double = call Multiply_DoubleDouble(A: %n25, B: 100) @(3648, 268)
+    %n27: double = call Subtract_DoubleDouble(A: %n26, B: %n14) @(3928, 284)
+    %n28: double = select(Index: $LeftWing, false: %n27, true: %n13) @(4112, 280)
+    %n29: double = select(Index: $LeftWing, false: %n14, true: %n13) @(4112, 464)
+    %n30: double = call Divide_DoubleDouble(A: %n21, B: 2) @(3904, 816)
+    %n31: double = call Add_DoubleDouble(A: %n24, B: %n30) @(4208, 648)
+    call AddPlannedRoom(Kind: %n3, X: %n15, Y: %n24, Width: %n28, Depth: %n21, DoorX: %n29, DoorY: %n31) @(4352, -16)
+    %n32: int = call Subtract_IntInt(A: $PlanRemainingUnits, B: $PlanPickedUnits) @(4904, 56)
+    set PlanRemainingUnits = %n32 @(5048, 0)
+    %n33: int = call Add_IntInt(A: $PlanCursorUnits, B: $PlanPickedUnits) @(5632, 56)
+    set PlanCursorUnits = %n33 @(5776, 0)
+    end
+
+@completed:
+    return @(1520, 216)
+}

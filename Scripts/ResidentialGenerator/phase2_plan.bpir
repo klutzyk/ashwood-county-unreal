@@ -1,0 +1,112 @@
+entry function BuildPlan() {
+ set $LayoutValid = false
+ %floorOK = call EqualEqual_IntInt(A: $Floors, B: 1)
+ branch(%floorOK) [true -> @rooms, false -> @badFloor]
+@rooms:
+ %countOK = call InRange_IntInt(Value: $RoomCount, Min: 3, Max: 8, InclusiveMin: true, InclusiveMax: true)
+ branch(%countOK) [true -> @dimensions, false -> @badCount]
+@dimensions:
+ %widthOK = call InRange_IntInt(Value: $WidthMetres, Min: 6, Max: 30, InclusiveMin: true, InclusiveMax: true)
+ %lengthOK = call InRange_IntInt(Value: $LengthMetres, Min: 4, Max: 40, InclusiveMin: true, InclusiveMax: true)
+ %dimsOK = call BooleanAND(A: %widthOK, B: %lengthOK)
+ branch(%dimsOK) [true -> @bounds, false -> @badDimensions]
+@bounds:
+ %minOK = call InRange_IntInt(Value: $MinRoomMetres, Min: 2, Max: 12, InclusiveMin: true, InclusiveMax: true)
+ %maxOK = call InRange_IntInt(Value: $MaxRoomMetres, Min: $MinRoomMetres, Max: 20, InclusiveMin: true, InclusiveMax: true)
+ %boundsOK = call BooleanAND(A: %minOK, B: %maxOK)
+ branch(%boundsOK) [true -> @width, false -> @badBounds]
+@width:
+ %minCM = call Multiply_DoubleDouble(A: $MinRoomMetres, B: 100)
+ %minPadded = call Add_DoubleDouble(A: %minCM, B: 45)
+ %min50 = call Divide_DoubleDouble(A: %minPadded, B: 50)
+ %minUnits = call FCeil(A: %min50)
+ %safeMin = call Max(A: %minUnits, B: 7)
+ set $PlanMinUnits = %safeMin
+ %maxCM = call Multiply_DoubleDouble(A: $MaxRoomMetres, B: 100)
+ %maxPadded = call Add_DoubleDouble(A: %maxCM, B: 30)
+ %max50 = call Divide_DoubleDouble(A: %maxPadded, B: 50)
+ %maxUnits = call FFloor(A: %max50)
+ set $PlanMaxUnits = %maxUnits
+ %widthUnits = call Multiply_IntInt(A: $WidthMetres, B: 2)
+ %available = call Subtract_IntInt(A: %widthUnits, B: 4)
+ %leftLo0 = call Subtract_IntInt(A: %available, B: $PlanMaxUnits)
+ %leftHi0 = call Subtract_IntInt(A: %available, B: $PlanMinUnits)
+ %leftLo = call Max(A: $PlanMinUnits, B: %leftLo0)
+ %leftHi = call Min(A: $PlanMaxUnits, B: %leftHi0)
+ %widthFits = call LessEqual_IntInt(A: %leftLo, B: %leftHi)
+ branch(%widthFits) [true -> @candidates, false -> @badWidth]
+@candidates:
+ call Array_Clear(TargetArray: $CandidateCounts)
+ %last = call Subtract_IntInt(A: $RoomCount, B: 1)
+ %loop = macro ForLoop(FirstIndex: 1, LastIndex: %last) [LoopBody -> @candidate, Completed -> @choose]
+@candidate:
+ %right = call Subtract_IntInt(A: $RoomCount, B: %loop.Index)
+ %totalUnits = call Multiply_IntInt(A: $LengthMetres, B: 2)
+ %lMin = call Multiply_IntInt(A: %loop.Index, B: $PlanMinUnits)
+ %lMax = call Multiply_IntInt(A: %loop.Index, B: $PlanMaxUnits)
+ %rMin = call Multiply_IntInt(A: %right, B: $PlanMinUnits)
+ %rMax = call Multiply_IntInt(A: %right, B: $PlanMaxUnits)
+ %lfits = call InRange_IntInt(Value: %totalUnits, Min: %lMin, Max: %lMax, InclusiveMin: true, InclusiveMax: true)
+ %rfits = call InRange_IntInt(Value: %totalUnits, Min: %rMin, Max: %rMax, InclusiveMin: true, InclusiveMax: true)
+ %fits = call BooleanAND(A: %lfits, B: %rfits)
+ branch(%fits) [true -> @add, false -> @skip]
+@add:
+ call Array_Add(TargetArray: $CandidateCounts, NewItem: %loop.Index)
+ end
+@skip:
+ end
+@choose:
+ %count = call Array_Length(TargetArray: $CandidateCounts)
+ %hasChoice = call Greater_IntInt(A: %count, B: 0)
+ branch(%hasChoice) [true -> @sample, false -> @badLength]
+@sample:
+ %stream = call MakeRandomStream(InitialSeed: $Seed)
+ set $Stream = %stream
+ %choiceLast = call Subtract_IntInt(A: %count, B: 1)
+ %pick = call DrawInt(Low: 0, High: %choiceLast)
+ %selected = call Array_Get(TargetArray: $CandidateCounts, Index: %pick)
+ set $PlanLeftCount = %selected
+ %rightCount = call Subtract_IntInt(A: $RoomCount, B: $PlanLeftCount)
+ set $PlanRightCount = %rightCount
+ %widthPick = call DrawInt(Low: %leftLo, High: %leftHi)
+ set $PlanLeftWidthUnits = %widthPick
+ call Array_Clear(TargetArray: $PendingRooms)
+ call PlanWing(LeftWing: true, Count: $PlanLeftCount)
+ call PlanWing(LeftWing: false, Count: $PlanRightCount)
+ %leftWidth = call Multiply_DoubleDouble(A: $PlanLeftWidthUnits, B: 50)
+ %l = call Multiply_DoubleDouble(A: $LengthMetres, B: 100)
+ %hallCenter = call Add_DoubleDouble(A: %leftWidth, B: 100)
+ %entranceY = select(cond: $EntranceAtRear, true: %l, false: 0.0)
+ call AddPlannedRoom(Kind: "Hallway", X: %leftWidth, Y: 0, Width: 200, Depth: %l, DoorX: %hallCenter, DoorY: %entranceY)
+ call ValidatePendingPlan()
+ branch($PlanPassed) [true -> @commit, false -> @invalid]
+@commit:
+ set $Rooms = $PendingRooms
+ %w = call Multiply_DoubleDouble(A: $WidthMetres, B: 100)
+ set $W = %w
+ set $L = %l
+ set $SideWidth = %leftWidth
+ set $LayoutValid = true
+ return
+@badFloor:
+ set $GenerationStatus = "Cannot generate: only one floor is supported. Previous building retained."
+ return
+@badCount:
+ set $GenerationStatus = "Cannot generate: RoomCount must be 3-8, excluding hallway. Three rooms use a combined living/kitchen. Previous building retained."
+ return
+@badDimensions:
+ set $GenerationStatus = "Cannot generate: width must be 6-30m and length 4-40m in whole metres; room-size constraints must also fit. Previous building retained."
+ return
+@badBounds:
+ set $GenerationStatus = "Cannot generate: MinRoomMetres must be 2-12; MaxRoomMetres must be at least MinRoomMetres and at most 20. These are clear interior dimensions. Previous building retained."
+ return
+@badWidth:
+ set $GenerationStatus = "Cannot generate: width cannot fit two room wings plus a 2m hallway within room-size bounds. Each structural wing needs at least 3.5m for door clearance. Adjust width or room limits. Previous building retained."
+ return
+@badLength:
+ set $GenerationStatus = "Cannot generate: no split of RoomCount between two wings fits this length and room limits (3.5m minimum structural depth). Adjust length, room count or size bounds. Previous building retained."
+ return
+@invalid:
+ set $GenerationStatus = "Cannot generate: candidate failed bounds, clearance, overlap or coverage validation. Previous building retained."
+ return
+}

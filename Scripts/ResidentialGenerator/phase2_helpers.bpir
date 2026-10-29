@@ -1,0 +1,97 @@
+entry function ChooseRoomDepth(int Low, int High, name Kind) -> int {
+ %sum = call Add_IntInt(A: $Low, B: $High)
+ %mid = call Divide_IntInt(A: %sum, B: 2)
+ %bath = call EqualEqual_NameName(A: $Kind, B: "Bathroom")
+ branch(%bath) [true -> @bath, false -> @other]
+@bath:
+ %small = call DrawInt(Low: $Low, High: %mid)
+ return %small
+@other:
+ %bed = call EqualEqual_NameName(A: $Kind, B: "Bedroom")
+ branch(%bed) [true -> @bed, false -> @public]
+@bed:
+ %normal = call DrawInt(Low: $Low, High: $High)
+ return %normal
+@public:
+ %large = call DrawInt(Low: %mid, High: $High)
+ return %large
+}
+entry function DrawInt(int Low, int High) -> int {
+ %value = call RandomIntegerInRangeFromStream(Min: $Low, Max: $High, Stream: $Stream)
+ return %value
+}
+entry function PickRoomType(bool LeftWing, int Index) -> name {
+ %three = call EqualEqual_IntInt(A: $RoomCount, B: 3)
+ branch(%three) [true -> @three, false -> @normal]
+@three:
+ %leftSingle = call EqualEqual_IntInt(A: $PlanLeftCount, B: 1)
+ %combined = call EqualEqual_BoolBool(A: $LeftWing, B: %leftSingle)
+ branch(%combined) [true -> @combined, false -> @private]
+@combined:
+ return "LivingKitchen"
+@private:
+ %first = call EqualEqual_IntInt(A: $Index, B: 0)
+ %kind = select(cond: %first, true: "Bedroom", false: "Bathroom")
+ return %kind
+@normal:
+ %zero = call EqualEqual_IntInt(A: $Index, B: 0)
+ branch(%zero) [true -> @public, false -> @other]
+@public:
+ %publicKind = select(cond: $LeftWing, true: "Living", false: "Kitchen")
+ return %publicKind
+@other:
+ %bathRight = call Greater_IntInt(A: $PlanRightCount, B: 1)
+ %onBathSide = call NotEqual_BoolBool(A: $LeftWing, B: %bathRight)
+ %second = call EqualEqual_IntInt(A: $Index, B: 1)
+ %bath = call BooleanAND(A: %onBathSide, B: %second)
+ %privateKind = select(cond: %bath, true: "Bathroom", false: "Bedroom")
+ return %privateKind
+}
+entry function AddPlannedRoom(name Kind, float X, float Y, float Width, float Depth, float DoorX, float DoorY) {
+ %min = make<Vector>(X: $X, Y: $Y, Z: 20)
+ %size = make<Vector>(X: $Width, Y: $Depth, Z: 300)
+ %door = make<Vector>(X: $DoorX, Y: $DoorY, Z: 20)
+ %room = make<ST_HouseRoom>(RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B: $Kind, Min_4_CA1734C84A7EB842FDFAA89748F89847: %min, Size_6_A050281547D25A85B4448B81EF60035D: %size, DoorCenter_8_16660F964D81C9BEF3895C9A21215F87: %door)
+ call Array_Add(TargetArray: $PendingRooms, NewItem: %room)
+}
+entry function PlanWing(bool LeftWing, int Count) {
+ %total = call Multiply_IntInt(A: $LengthMetres, B: 2)
+ set $PlanRemainingUnits = %total
+ set $PlanCursorUnits = 0
+ %last = call Subtract_IntInt(A: $Count, B: 1)
+ %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @body, Completed -> @done]
+@body:
+ %after = call Subtract_IntInt(A: %last, B: %loop.Index)
+ %futureMax = call Multiply_IntInt(A: %after, B: $PlanMaxUnits)
+ %futureMin = call Multiply_IntInt(A: %after, B: $PlanMinUnits)
+ %lo0 = call Subtract_IntInt(A: $PlanRemainingUnits, B: %futureMax)
+ %hi0 = call Subtract_IntInt(A: $PlanRemainingUnits, B: %futureMin)
+ %lo = call Max(A: $PlanMinUnits, B: %lo0)
+ %hi = call Min(A: $PlanMaxUnits, B: %hi0)
+ %kind = call PickRoomType(LeftWing: $LeftWing, Index: %loop.Index)
+ %picked = call ChooseRoomDepth(Low: %lo, High: %hi, Kind: %kind)
+ set $PlanPickedUnits = %picked
+ %leftWidth = call Multiply_DoubleDouble(A: $PlanLeftWidthUnits, B: 50)
+ %rightX = call Add_DoubleDouble(A: %leftWidth, B: 200)
+ %w = call Multiply_DoubleDouble(A: $WidthMetres, B: 100)
+ %rightWidth = call Subtract_DoubleDouble(A: %w, B: %rightX)
+ %roomX = select(cond: $LeftWing, true: 0.0, false: %rightX)
+ %roomWidth = select(cond: $LeftWing, true: %leftWidth, false: %rightWidth)
+ %cursor = call Multiply_DoubleDouble(A: $PlanCursorUnits, B: 50)
+ %depth = call Multiply_DoubleDouble(A: $PlanPickedUnits, B: 50)
+ %length = call Multiply_DoubleDouble(A: $LengthMetres, B: 100)
+ %end = call Add_DoubleDouble(A: %cursor, B: %depth)
+ %fromRear = call Subtract_DoubleDouble(A: %length, B: %end)
+ %y = select(cond: $EntranceAtRear, true: %fromRear, false: %cursor)
+ %half = call Divide_DoubleDouble(A: %depth, B: 2)
+ %doorY = call Add_DoubleDouble(A: %y, B: %half)
+ %doorX = select(cond: $LeftWing, true: %leftWidth, false: %rightX)
+ call AddPlannedRoom(Kind: %kind, X: %roomX, Y: %y, Width: %roomWidth, Depth: %depth, DoorX: %doorX, DoorY: %doorY)
+ %remaining = call Subtract_IntInt(A: $PlanRemainingUnits, B: $PlanPickedUnits)
+ set $PlanRemainingUnits = %remaining
+ %advance = call Add_IntInt(A: $PlanCursorUnits, B: $PlanPickedUnits)
+ set $PlanCursorUnits = %advance
+ end
+@done:
+ return
+}

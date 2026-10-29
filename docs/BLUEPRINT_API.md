@@ -368,6 +368,19 @@ The current slice intentionally has no inventory, weapon hierarchy, ammunition, 
 4. Override `Zombie Died` for a death montage, dissolve, or non-networked cosmetic ragdoll. Native code disables behavior and later cleans up using **Corpse Cleanup Delay**.
 5. Animation-notify-driven authoritative timing is an extension point via `Commit Attack Impact`, but the current automatic windup remains active; switching timing modes is not yet exposed without a small C++ change.
 
+## Procedural residential generator (Phase 2, 2026-10-29)
+
+`/Game/_Main/Buildings/Procedural/BP_ResidentialGenerator` remains an editable Blueprint Actor, not a native replacement. `ST_HouseRoom` is unchanged.
+
+- **RegenerateBuilding** (Public, Call in Editor): validate a pending plan before clearing any ISM instances; rebuild only on success. Explicit editor transaction; no automatic construction/load regeneration. Read `LayoutValid` and `GenerationStatus` after calling. Save the level to persist generated instances.
+- **ConfigurePlot**: existing callable integration entry retained unchanged; no PCG graph or multiplayer support added.
+- Editable inputs: `WidthMetres`, `LengthMetres`, `Floors` (1 only), `Seed`, `RoomCount` (3-8, EXCLUDES hallway), `MinRoomMetres`, `MaxRoomMetres` (clear interior dimensions; exclude hallway), `WindowFrequency` (0-1), `RoofEnabled`, `ShowOpenDoors`, `EntranceAtRear`, `FloorMaterial`, `ExteriorMaterial`.
+- Three rooms means LivingKitchen + Bedroom + Bathroom. Four or more separate Living and Kitchen, with one Bathroom and remaining Bedrooms. All rooms open to shared circulation.
+- `Rooms` includes one additional Hallway entry. Its existing struct fields are room type, minimum corner, nominal size and door centre, in actor-local centimetres. Names are `LivingKitchen`, `Living`, `Kitchen`, `Bedroom`, `Bathroom`, `Hallway`.
+- Internal planning helpers: `DrawInt`, `PickRoomType`, `ChooseRoomDepth`, `AddPlannedRoom`, `PlanWing`, `RoomIsValid`, `RoomsOverlap`, `ValidatePendingPlan`. `PendingRooms` is validated before replacing `Rooms`; these helpers are implementation details, not independent designer entry points. `OpeningAt` supports corridor-offset exterior entrances.
+
+See [Residential generator guide](RESIDENTIAL_GENERATOR.md) for feasibility limits, tested examples, evidence and manual checks.
+
 ## Current limitations
 
 - Zombie animation-notify timing cannot replace the automatic windup from Blueprint alone yet; `Commit Attack Impact` is exposed for the later server montage integration.

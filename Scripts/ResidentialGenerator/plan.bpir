@@ -1,0 +1,85 @@
+entry function BuildPlan() {
+ set $LayoutValid = false
+ %floorOK = call EqualEqual_IntInt(A: $Floors, B: 1)
+ %roomOK = call EqualEqual_IntInt(A: $RoomCount, B: 5)
+ %basic = call BooleanAND(A: %floorOK, B: %roomOK)
+ %widthOK = call InRange_IntInt(Value: $WidthMetres, Min: 10, Max: 16, InclusiveMin: true, InclusiveMax: true)
+ %lengthOK = call InRange_IntInt(Value: $LengthMetres, Min: 12, Max: 21, InclusiveMin: true, InclusiveMax: true)
+ %dims = call BooleanAND(A: %widthOK, B: %lengthOK)
+ %valid = call BooleanAND(A: %basic, B: %dims)
+ branch(%valid) [true -> @ranges, false -> @bad]
+@ranges:
+ %w = call Multiply_DoubleDouble(A: $WidthMetres, B: 100)
+ set $W = %w
+ %l = call Multiply_DoubleDouble(A: $LengthMetres, B: 100)
+ set $L = %l
+ %lessHall = call Subtract_DoubleDouble(A: $W, B: 200)
+ %side = call Divide_DoubleDouble(A: %lessHall, B: 2)
+ set $SideWidth = %side
+ %min = call Add_IntInt(A: $MinRoomMetres, B: 1)
+ %minimum = call Max(A: %min, B: 4)
+ %leftLo0 = call Subtract_IntInt(A: $LengthMetres, B: $MaxRoomMetres)
+ %leftLo = call Max(A: %minimum, B: %leftLo0)
+ %leftHi0 = call Subtract_IntInt(A: $LengthMetres, B: %minimum)
+ %leftHi = call Min(A: $MaxRoomMetres, B: %leftHi0)
+ %max2 = call Multiply_IntInt(A: $MaxRoomMetres, B: 2)
+ %min2 = call Multiply_IntInt(A: %minimum, B: 2)
+ %rightLo0 = call Subtract_IntInt(A: $LengthMetres, B: %max2)
+ %rightLo = call Max(A: %minimum, B: %rightLo0)
+ %rightHi0 = call Subtract_IntInt(A: $LengthMetres, B: %min2)
+ %rightHi = call Min(A: $MaxRoomMetres, B: %rightHi0)
+ %leftOK = call LessEqual_IntInt(A: %leftLo, B: %leftHi)
+ %rightOK = call LessEqual_IntInt(A: %rightLo, B: %rightHi)
+ %splitOK = call BooleanAND(A: %leftOK, B: %rightOK)
+ %clearWidth = call Subtract_DoubleDouble(A: $SideWidth, B: 45)
+ %minCM = call Multiply_DoubleDouble(A: $MinRoomMetres, B: 100)
+ %maxCM = call Multiply_DoubleDouble(A: $MaxRoomMetres, B: 100)
+ %roomWidthOK = call InRange_FloatFloat(Value: %clearWidth, Min: %minCM, Max: %maxCM, InclusiveMin: true, InclusiveMax: true)
+ %allOK = call BooleanAND(A: %splitOK, B: %roomWidthOK)
+ branch(%allOK) [true -> @sample, false -> @bad]
+@sample:
+ %stream = call MakeRandomStream(InitialSeed: $Seed)
+ set $Stream = %stream
+ %left = call RandomIntegerInRangeFromStream(Min: %leftLo, Max: %leftHi, Stream: $Stream)
+ %leftCM = call Multiply_DoubleDouble(A: %left, B: 100)
+ set $LeftSplit = %leftCM
+ %rightA = call RandomIntegerInRangeFromStream(Min: %rightLo, Max: %rightHi, Stream: $Stream)
+ %rightACM = call Multiply_DoubleDouble(A: %rightA, B: 100)
+ set $RightSplitA = %rightACM
+ %remainingCM = call Subtract_DoubleDouble(A: $L, B: $RightSplitA)
+ %remainingM = call Divide_DoubleDouble(A: %remainingCM, B: 100)
+ %remaining = call FTrunc(A: %remainingM)
+ %bLo0 = call Subtract_IntInt(A: %remaining, B: $MaxRoomMetres)
+ %bLo = call Max(A: %minimum, B: %bLo0)
+ %bHi0 = call Subtract_IntInt(A: %remaining, B: %minimum)
+ %bHi = call Min(A: $MaxRoomMetres, B: %bHi0)
+ %b = call RandomIntegerInRangeFromStream(Min: %bLo, Max: %bHi, Stream: $Stream)
+ %bCM = call Multiply_DoubleDouble(A: %b, B: 100)
+ %bEnd = call Add_DoubleDouble(A: $RightSplitA, B: %bCM)
+ set $RightSplitB = %bEnd
+ call Array_Clear(TargetArray: $Rooms)
+ %rightX = call Add_DoubleDouble(A: $SideWidth, B: 200)
+ %hallMid = call Add_DoubleDouble(A: $SideWidth, B: 100)
+ %leftMid1 = call Divide_DoubleDouble(A: $LeftSplit, B: 2)
+ %leftDepth2 = call Subtract_DoubleDouble(A: $L, B: $LeftSplit)
+ %leftHalf2 = call Divide_DoubleDouble(A: %leftDepth2, B: 2)
+ %leftMid2 = call Add_DoubleDouble(A: $LeftSplit, B: %leftHalf2)
+ %rightMid1 = call Divide_DoubleDouble(A: $RightSplitA, B: 2)
+ %rightDepth2 = call Subtract_DoubleDouble(A: $RightSplitB, B: $RightSplitA)
+ %rightHalf2 = call Divide_DoubleDouble(A: %rightDepth2, B: 2)
+ %rightMid2 = call Add_DoubleDouble(A: $RightSplitA, B: %rightHalf2)
+ %rightDepth3 = call Subtract_DoubleDouble(A: $L, B: $RightSplitB)
+ %rightHalf3 = call Divide_DoubleDouble(A: %rightDepth3, B: 2)
+ %rightMid3 = call Add_DoubleDouble(A: $RightSplitB, B: %rightHalf3)
+ call AddRoom(Kind: "Living", X: 0, Y: 0, Width: $SideWidth, Depth: $LeftSplit, DoorX: $SideWidth, DoorY: %leftMid1)
+ call AddRoom(Kind: "Kitchen", X: 0, Y: $LeftSplit, Width: $SideWidth, Depth: %leftDepth2, DoorX: $SideWidth, DoorY: %leftMid2)
+ call AddRoom(Kind: "Bedroom1", X: %rightX, Y: 0, Width: $SideWidth, Depth: $RightSplitA, DoorX: %rightX, DoorY: %rightMid1)
+ call AddRoom(Kind: "Bathroom", X: %rightX, Y: $RightSplitA, Width: $SideWidth, Depth: %rightDepth2, DoorX: %rightX, DoorY: %rightMid2)
+ call AddRoom(Kind: "Bedroom2", X: %rightX, Y: $RightSplitB, Width: $SideWidth, Depth: %rightDepth3, DoorX: %rightX, DoorY: %rightMid3)
+ call AddRoom(Kind: "Hallway", X: $SideWidth, Y: 0, Width: 200, Depth: $L, DoorX: %hallMid, DoorY: 0)
+ set $LayoutValid = true
+ return
+@bad:
+ set $GenerationStatus = "Unsupported configuration: one floor, five rooms; width 10-16m, length 12-21m. Room bounds must fit two rooms on the left and three on the right. Previous meshes retained."
+ return
+}

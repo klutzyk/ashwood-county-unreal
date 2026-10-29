@@ -1,0 +1,67 @@
+entry function RoofEdge(float X, float Y, float Z, float Yaw, float Length, float Depth) {
+ %q = call Divide_DoubleDouble(A: $Length, B: 200)
+ %n = call FCeil(A: %q)
+ %last = call Subtract_IntInt(A: %n, B: 1)
+ %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @body, Completed -> @done]
+@body:
+ %along = call Multiply_DoubleDouble(A: %loop.Index, B: 200)
+ %remaining = call Subtract_DoubleDouble(A: $Length, B: %along)
+ %size = call FMin(A: %remaining, B: 200)
+ %sy = call Divide_DoubleDouble(A: %size, B: 200)
+ %sx = call Divide_DoubleDouble(A: $Depth, B: 200)
+ call PlaceOffset(Component: $RoofPanel, X: $X, Y: $Y, Z: $Z, Yaw: $Yaw, Along: 0, Across: %along, Turn: 0, SX: %sx, SY: %sy, SZ: %sx)
+ end
+@done:
+ return
+}
+entry function RoofRing(float Inset) {
+ %twice = call Multiply_DoubleDouble(A: $Inset, B: 2)
+ %outerW = call Add_DoubleDouble(A: $W, B: 100)
+ %outerL = call Add_DoubleDouble(A: $L, B: 100)
+ %rw = call Subtract_DoubleDouble(A: %outerW, B: %twice)
+ %rl = call Subtract_DoubleDouble(A: %outerL, B: %twice)
+ %min = call FMin(A: %rw, B: %rl)
+ %half = call Divide_DoubleDouble(A: %min, B: 2)
+ %d = call FMin(A: %half, B: 200)
+ %positive = call Greater_DoubleDouble(A: %d, B: 0.1)
+ branch(%positive) [true -> @ring, false -> @done]
+@ring:
+ %lo = call Subtract_DoubleDouble(A: $Inset, B: 50)
+ %wx = call Add_DoubleDouble(A: %lo, B: %rw)
+ %ly = call Add_DoubleDouble(A: %lo, B: %rl)
+ %rise = call Multiply_DoubleDouble(A: $Inset, B: 0.5)
+ %z = call Add_DoubleDouble(A: %rise, B: 300)
+ %scale = call Divide_DoubleDouble(A: %d, B: 200)
+ call Place(Component: $RoofCorner, X: %lo, Y: %lo, Z: %z, Yaw: 0, SX: %scale, SY: %scale, SZ: %scale)
+ call Place(Component: $RoofCorner, X: %wx, Y: %lo, Z: %z, Yaw: 90, SX: %scale, SY: %scale, SZ: %scale)
+ call Place(Component: $RoofCorner, X: %wx, Y: %ly, Z: %z, Yaw: 180, SX: %scale, SY: %scale, SZ: %scale)
+ call Place(Component: $RoofCorner, X: %lo, Y: %ly, Z: %z, Yaw: 270, SX: %scale, SY: %scale, SZ: %scale)
+ %twod = call Multiply_DoubleDouble(A: %d, B: 2)
+ %runW = call Subtract_DoubleDouble(A: %rw, B: %twod)
+ %runL = call Subtract_DoubleDouble(A: %rl, B: %twod)
+ %start = call Add_DoubleDouble(A: %lo, B: %d)
+ %endX = call Subtract_DoubleDouble(A: %wx, B: %d)
+ %endY = call Subtract_DoubleDouble(A: %ly, B: %d)
+ call RoofEdge(X: %lo, Y: %start, Z: %z, Yaw: 0, Length: %runL, Depth: %d)
+ call RoofEdge(X: %endX, Y: %lo, Z: %z, Yaw: 90, Length: %runW, Depth: %d)
+ call RoofEdge(X: %wx, Y: %endY, Z: %z, Yaw: 180, Length: %runL, Depth: %d)
+ call RoofEdge(X: %start, Y: %ly, Z: %z, Yaw: 270, Length: %runW, Depth: %d)
+ return
+@done:
+ return
+}
+entry function BuildRoof() {
+ branch($RoofEnabled) [true -> @build, false -> @done]
+@build:
+ %outer = call Add_DoubleDouble(A: $W, B: 100)
+ %q = call Divide_DoubleDouble(A: %outer, B: 400)
+ %n = call FCeil(A: %q)
+ %last = call Subtract_IntInt(A: %n, B: 1)
+ %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @body, Completed -> @done]
+@body:
+ %inset = call Multiply_DoubleDouble(A: %loop.Index, B: 200)
+ call RoofRing(Inset: %inset)
+ end
+@done:
+ return
+}

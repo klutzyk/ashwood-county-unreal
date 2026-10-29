@@ -1,0 +1,100 @@
+entry function OpeningAt(float X, float Y, float Yaw, float Length, bool ExteriorDoor, float CenterAlong) {
+    %n0: object<InstancedStaticMeshComponent> = select(Index: $ExteriorDoor, false: $Interior, true: $Exterior)
+    %n1: double = call Add_DoubleDouble(A: $CenterAlong, B: 0)
+    %n2: double = call Subtract_DoubleDouble(A: %n1, B: 150)
+    call Strip(Component: %n0, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Length: %n2)
+    %n3: object<InstancedStaticMeshComponent> = select(Index: $ExteriorDoor, false: $Doorway, true: $Entrance)
+    call PlaceOffset(Component: %n3, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n2, Across: 0, Turn: 0, SX: 1, SY: 1, SZ: 1)
+    %n4: double = call Add_DoubleDouble(A: %n1, B: 150)
+    %n5: struct<Vector> = call MakeVector(X: %n4, Y: 0, Z: 0)
+    %n6: struct<Rotator> = call MakeRotator(Roll: 0.0, Pitch: 0.0, Yaw: $Yaw)
+    %n7: struct<Vector> = call GreaterGreater_VectorRotator(A: %n5, B: %n6)
+    %n8: double = call BreakVector(InVec: %n7)
+    %n9: double = call Add_DoubleDouble(A: $X, B: %n8.X)
+    %n10: double = call Add_DoubleDouble(A: $Y, B: %n8.Y)
+    %remaining = call Subtract_DoubleDouble(A: $Length, B: %n4)
+    call Strip(Component: %n0, X: %n9, Y: %n10, Z: 20, Yaw: $Yaw, Length: %remaining)
+    %n11: double = call Subtract_DoubleDouble(A: %n1, B: 50)
+    call PlaceOffset(Component: $DoorFrame, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n11, Across: 10, Turn: 0, SX: 1, SY: 1, SZ: 1)
+    %n12 = branch($ShowOpenDoors) [false -> @else, true -> @then]
+
+@then:
+    call PlaceOffset(Component: $DoorLeaf, X: $X, Y: $Y, Z: 20, Yaw: $Yaw, Along: %n11, Across: 10, Turn: -90, SX: 1, SY: 1, SZ: 1)
+    end
+
+@else:
+    return
+}
+entry function BuildRoomWalls(struct<ST_HouseRoom> Room) {
+    %n0: name = break<ST_HouseRoom>($Room)
+    %n1: double = call BreakVector(InVec: %n0.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %n2: bool = call EqualEqual_DoubleDouble(A: %n1.X, B: 0)
+    %n3 = branch(%n2) [false -> @else, true -> @then]
+
+@then:
+    %n4: double = call Add_DoubleDouble(A: $SideWidth, B: 15)
+    %n5: double = call BreakVector(InVec: %n0.Size_6_A050281547D25A85B4448B81EF60035D)
+    call Opening(X: %n4, Y: %n1.Y, Yaw: 90, Length: %n5.Y, ExteriorDoor: false)
+    %n6: double = call Add_DoubleDouble(A: %n1.Y, B: %n5.Y)
+    %n7: double = call Subtract_DoubleDouble(A: $L, B: 100)
+    %n8: double = call FMin(A: %n6, B: %n7)
+    %n9: double = call FMax(A: %n1.Y, B: 100)
+    %n10: double = call Subtract_DoubleDouble(A: %n8, B: %n9)
+    call Facade(X: 0, Y: %n8, Yaw: 270, Length: %n10)
+    exec -> @merge
+
+@else:
+    %n11: double = call Subtract_DoubleDouble(A: %n1.X, B: 15)
+    call Opening(X: %n11, Y: %n6, Yaw: 270, Length: %n5.Y, ExteriorDoor: false)
+    %n12: double = call FMax(A: %n1.Y, B: 100)
+    %n13: double = call Subtract_DoubleDouble(A: $L, B: 100)
+    %n14: double = call FMin(A: %n6, B: %n13)
+    %n15: double = call Subtract_DoubleDouble(A: %n14, B: %n12)
+    call Facade(X: $W, Y: %n12, Yaw: 90, Length: %n15)
+    exec -> @merge
+
+@merge:
+    %n16: bool = call Less_DoubleDouble(A: %n6, B: $L)
+    %n17 = branch(%n16) [false -> @else_2, true -> @then_2]
+
+@then_2:
+    %n18: double = call Subtract_DoubleDouble(A: %n6, B: 15)
+    call Strip(Component: $Interior, X: %n1.X, Y: %n18, Z: 20, Yaw: 0, Length: %n5.X)
+    end
+
+@else_2:
+    return
+}
+entry function BuildShell() {
+ %opposite0 = call Subtract_DoubleDouble(A: $W, B: $SideWidth)
+ %opposite = call Subtract_DoubleDouble(A: %opposite0, B: 200)
+ %roomLast = call Subtract_IntInt(A: $RoomCount, B: 1)
+    call Place(Component: $Corner, X: 0, Y: 0, Z: 20, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Corner, X: $W, Y: 0, Z: 20, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Corner, X: $W, Y: $L, Z: 20, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Corner, X: 0, Y: $L, Z: 20, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    %n0 = branch($EntranceAtRear) [false -> @else, true -> @then]
+
+@then:
+    %n1: double = call Subtract_DoubleDouble(A: $W, B: 200)
+    call Strip(Component: $Exterior, X: 100, Y: 0, Z: 20, Yaw: 0, Length: %n1)
+    %n2: double = call Subtract_DoubleDouble(A: $W, B: 100)
+    call OpeningAt(X: %n2, Y: $L, Yaw: 180, Length: %n1, ExteriorDoor: true, CenterAlong: %opposite)
+    exec -> @merge
+
+@else:
+    call OpeningAt(X: 100, Y: 0, Yaw: 0, Length: %n1, ExteriorDoor: true, CenterAlong: $SideWidth)
+    call Strip(Component: $Exterior, X: %n2, Y: $L, Z: 20, Yaw: 180, Length: %n1)
+    exec -> @merge
+
+@merge:
+    %n3: int = macro ForLoop(FirstIndex: 0, LastIndex: %roomLast) [Completed -> @completed, LoopBody -> @loopbody]
+
+@loopbody:
+    %n4: struct<ST_HouseRoom> = call Array_Get(TargetArray: $Rooms, Index: %n3.Index)
+    call BuildRoomWalls(Room: %n4.Item)
+    end
+
+@completed:
+    return
+}

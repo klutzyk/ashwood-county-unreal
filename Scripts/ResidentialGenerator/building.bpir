@@ -1,0 +1,101 @@
+entry function BuildRoomWalls(struct<ST_HouseRoom> Room) {
+ %r = break<ST_HouseRoom>($Room)
+ %left = call EqualEqual_DoubleDouble(A: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.X, B: 0)
+ %yend = call Add_DoubleDouble(A: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, B: %r.Size_6_A050281547D25A85B4448B81EF60035D.Y)
+ branch(%left) [true -> @left, false -> @right]
+@left:
+ %lx = call Add_DoubleDouble(A: $SideWidth, B: 15)
+ call Opening(X: %lx, Y: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, Yaw: 90, Length: %r.Size_6_A050281547D25A85B4448B81EF60035D.Y, ExteriorDoor: false)
+ %lminus = call Subtract_DoubleDouble(A: $L, B: 100)
+ %top = call FMin(A: %yend, B: %lminus)
+ %bottom = call FMax(A: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, B: 100)
+ %len = call Subtract_DoubleDouble(A: %top, B: %bottom)
+ call Facade(X: 0, Y: %top, Yaw: 270, Length: %len)
+ exec -> @partition
+@right:
+ %rx = call Subtract_DoubleDouble(A: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.X, B: 15)
+ call Opening(X: %rx, Y: %yend, Yaw: 270, Length: %r.Size_6_A050281547D25A85B4448B81EF60035D.Y, ExteriorDoor: false)
+ %lminusR = call Subtract_DoubleDouble(A: $L, B: 100)
+ %topR = call FMin(A: %yend, B: %lminusR)
+ %bottomR = call FMax(A: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, B: 100)
+ %lenR = call Subtract_DoubleDouble(A: %topR, B: %bottomR)
+ call Facade(X: $W, Y: %bottomR, Yaw: 90, Length: %lenR)
+ exec -> @partition
+@partition:
+ %hasNext = call Less_DoubleDouble(A: %yend, B: $L)
+ branch(%hasNext) [true -> @wall, false -> @done]
+@wall:
+ %wallY = call Subtract_DoubleDouble(A: %yend, B: 15)
+ call Strip(Component: $Interior, X: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.X, Y: %wallY, Z: 20, Yaw: 0, Length: $SideWidth)
+ end
+@done:
+ return
+}
+entry function BuildShell() {
+ call Place(Component: $Corner, X: 0, Y: 0, Z: 20, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+ call Place(Component: $Corner, X: $W, Y: 0, Z: 20, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+ call Place(Component: $Corner, X: $W, Y: $L, Z: 20, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+ call Place(Component: $Corner, X: 0, Y: $L, Z: 20, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+ %runW = call Subtract_DoubleDouble(A: $W, B: 200)
+ %backX = call Subtract_DoubleDouble(A: $W, B: 100)
+ call Opening(X: 100, Y: 0, Yaw: 0, Length: %runW, ExteriorDoor: true)
+ call Strip(Component: $Exterior, X: %backX, Y: $L, Z: 20, Yaw: 180, Length: %runW)
+ %loop = macro ForLoop(FirstIndex: 0, LastIndex: 4) [LoopBody -> @body, Completed -> @done]
+@body:
+ %room = call Array_Get(TargetArray: $Rooms, Index: %loop.Index)
+ call BuildRoomWalls(Room: %room)
+ end
+@done:
+ return
+}
+entry function BuildFloors() {
+ %xlast = call Subtract_IntInt(A: $WidthMetres, B: 1)
+ %ylast = call Subtract_IntInt(A: $LengthMetres, B: 1)
+ %xloop = macro ForLoop(FirstIndex: 0, LastIndex: %xlast) [LoopBody -> @xbody, Completed -> @done]
+@xbody:
+ %yloop = macro ForLoop(FirstIndex: 0, LastIndex: %ylast) [LoopBody -> @ybody, Completed -> @xdone]
+@ybody:
+ %x = call Multiply_DoubleDouble(A: %xloop.Index, B: 100)
+ %y = call Multiply_DoubleDouble(A: %yloop.Index, B: 100)
+ call Place(Component: $Floor, X: %x, Y: %y, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+ end
+@xdone:
+ end
+@done:
+ return
+}
+entry function ClearGeometry() {
+ call ClearInstances(Target: $Floor)
+ call ClearInstances(Target: $Exterior)
+ call ClearInstances(Target: $Interior)
+ call ClearInstances(Target: $Corner)
+ call ClearInstances(Target: $Entrance)
+ call ClearInstances(Target: $Doorway)
+ call ClearInstances(Target: $Window)
+ call ClearInstances(Target: $Frame)
+ call ClearInstances(Target: $Glass)
+ call ClearInstances(Target: $DoorFrame)
+ call ClearInstances(Target: $DoorLeaf)
+ call ClearInstances(Target: $RoofPanel)
+ call ClearInstances(Target: $RoofCorner)
+ call ClearInstances(Target: $Foundation)
+}
+entry function RegenerateBuilding() {
+ call BuildPlan()
+ branch($LayoutValid) [true -> @build, false -> @done]
+@build:
+ call ClearGeometry()
+ call BuildFloors()
+ call BuildShell()
+ call BuildRoof()
+ set $GenerationStatus = "Generated: five rooms and connected hallway. Open static doors; single storey hipped roof."
+ end
+@done:
+ return
+}
+entry function ConfigurePlot(int PlotSeed, int PlotWidthMetres, int PlotLengthMetres) {
+ set $Seed = $PlotSeed
+ set $WidthMetres = $PlotWidthMetres
+ set $LengthMetres = $PlotLengthMetres
+ call RegenerateBuilding()
+}

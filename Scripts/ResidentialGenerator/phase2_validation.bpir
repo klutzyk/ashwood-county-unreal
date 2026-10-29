@@ -1,0 +1,104 @@
+entry function RoomIsValid(struct<ST_HouseRoom> Room) -> bool {
+ %r = break<ST_HouseRoom>($Room)
+ %endX = call Add_DoubleDouble(A: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.X, B: %r.Size_6_A050281547D25A85B4448B81EF60035D.X)
+ %endY = call Add_DoubleDouble(A: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, B: %r.Size_6_A050281547D25A85B4448B81EF60035D.Y)
+ %w = call Multiply_DoubleDouble(A: $WidthMetres, B: 100)
+ %l = call Multiply_DoubleDouble(A: $LengthMetres, B: 100)
+ %xOK = call InRange_FloatFloat(Value: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.X, Min: 0, Max: %w, InclusiveMin: true, InclusiveMax: true)
+ %yOK = call InRange_FloatFloat(Value: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, Min: 0, Max: %l, InclusiveMin: true, InclusiveMax: true)
+ %exOK = call InRange_FloatFloat(Value: %endX, Min: 0, Max: %w, InclusiveMin: true, InclusiveMax: true)
+ %eyOK = call InRange_FloatFloat(Value: %endY, Min: 0, Max: %l, InclusiveMin: true, InclusiveMax: true)
+ %startOK = call BooleanAND(A: %xOK, B: %yOK)
+ %endOK = call BooleanAND(A: %exOK, B: %eyOK)
+ %boundsOK = call BooleanAND(A: %startOK, B: %endOK)
+ branch(%boundsOK) [true -> @inside, false -> @bad]
+@inside:
+ %hall = call EqualEqual_NameName(A: %r.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Hallway")
+ branch(%hall) [true -> @good, false -> @room]
+@room:
+ %min = call Multiply_DoubleDouble(A: $MinRoomMetres, B: 100)
+ %max = call Multiply_DoubleDouble(A: $MaxRoomMetres, B: 100)
+ %clearX = call Subtract_DoubleDouble(A: %r.Size_6_A050281547D25A85B4448B81EF60035D.X, B: 45)
+ %atFront = call EqualEqual_DoubleDouble(A: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, B: 0)
+ %atRear = call EqualEqual_DoubleDouble(A: %endY, B: %l)
+ %endCount = select(cond: %atFront, true: 15.0, false: 0.0)
+ %rearDeduction = select(cond: %atRear, true: 15.0, false: 0.0)
+ %d0 = call Add_DoubleDouble(A: %endCount, B: %rearDeduction)
+ %deduct = call Add_DoubleDouble(A: %d0, B: 30)
+ %clearY = call Subtract_DoubleDouble(A: %r.Size_6_A050281547D25A85B4448B81EF60035D.Y, B: %deduct)
+ %widthOK = call InRange_FloatFloat(Value: %clearX, Min: %min, Max: %max, InclusiveMin: true, InclusiveMax: true)
+ %depthOK = call InRange_FloatFloat(Value: %clearY, Min: %min, Max: %max, InclusiveMin: true, InclusiveMax: true)
+ %sizeOK = call BooleanAND(A: %widthOK, B: %depthOK)
+ %leftWidth = call Multiply_DoubleDouble(A: $PlanLeftWidthUnits, B: 50)
+ %rightX = call Add_DoubleDouble(A: %leftWidth, B: 200)
+ %left = call EqualEqual_DoubleDouble(A: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.X, B: 0)
+ %expectedX = select(cond: %left, true: %leftWidth, false: %rightX)
+ %doorXOK = call EqualEqual_DoubleDouble(A: %r.DoorCenter_8_16660F964D81C9BEF3895C9A21215F87.X, B: %expectedX)
+ %doorLow = call Add_DoubleDouble(A: %r.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, B: 150)
+ %doorHigh = call Subtract_DoubleDouble(A: %endY, B: 150)
+ %doorYOK = call InRange_FloatFloat(Value: %r.DoorCenter_8_16660F964D81C9BEF3895C9A21215F87.Y, Min: %doorLow, Max: %doorHigh, InclusiveMin: true, InclusiveMax: true)
+ %doorOK = call BooleanAND(A: %doorXOK, B: %doorYOK)
+ %all = call BooleanAND(A: %sizeOK, B: %doorOK)
+ return %all
+@good:
+ return true
+@bad:
+ return false
+}
+entry function RoomsOverlap(struct<ST_HouseRoom> A, struct<ST_HouseRoom> B) -> bool {
+ %a = break<ST_HouseRoom>($A)
+ %b = break<ST_HouseRoom>($B)
+ %ax = call Add_DoubleDouble(A: %a.Min_4_CA1734C84A7EB842FDFAA89748F89847.X, B: %a.Size_6_A050281547D25A85B4448B81EF60035D.X)
+ %ay = call Add_DoubleDouble(A: %a.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, B: %a.Size_6_A050281547D25A85B4448B81EF60035D.Y)
+ %bx = call Add_DoubleDouble(A: %b.Min_4_CA1734C84A7EB842FDFAA89748F89847.X, B: %b.Size_6_A050281547D25A85B4448B81EF60035D.X)
+ %by = call Add_DoubleDouble(A: %b.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, B: %b.Size_6_A050281547D25A85B4448B81EF60035D.Y)
+ %x1 = call Less_DoubleDouble(A: %a.Min_4_CA1734C84A7EB842FDFAA89748F89847.X, B: %bx)
+ %x2 = call Less_DoubleDouble(A: %b.Min_4_CA1734C84A7EB842FDFAA89748F89847.X, B: %ax)
+ %y1 = call Less_DoubleDouble(A: %a.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, B: %by)
+ %y2 = call Less_DoubleDouble(A: %b.Min_4_CA1734C84A7EB842FDFAA89748F89847.Y, B: %ay)
+ %x = call BooleanAND(A: %x1, B: %x2)
+ %y = call BooleanAND(A: %y1, B: %y2)
+ %overlap = call BooleanAND(A: %x, B: %y)
+ return %overlap
+}
+entry function ValidatePendingPlan() {
+ set $PlanPassed = true
+ set $PlanArea = 0
+ %count = call Array_Length(TargetArray: $PendingRooms)
+ %expected = call Add_IntInt(A: $RoomCount, B: 1)
+ %countOK = call EqualEqual_IntInt(A: %count, B: %expected)
+ branch(%countOK) [true -> @start, false -> @bad]
+@start:
+ %last = call Subtract_IntInt(A: %count, B: 1)
+ %outer = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @body, Completed -> @area]
+@body:
+ %room = call Array_Get(TargetArray: $PendingRooms, Index: %outer.Index)
+ %valid = call RoomIsValid(Room: %room)
+ %combined = call BooleanAND(A: $PlanPassed, B: %valid)
+ set $PlanPassed = %combined
+ %r = break<ST_HouseRoom>(%room)
+ %area = call Multiply_DoubleDouble(A: %r.Size_6_A050281547D25A85B4448B81EF60035D.X, B: %r.Size_6_A050281547D25A85B4448B81EF60035D.Y)
+ %sum = call Add_DoubleDouble(A: $PlanArea, B: %area)
+ set $PlanArea = %sum
+ %first = call Add_IntInt(A: %outer.Index, B: 1)
+ %inner = macro ForLoop(FirstIndex: %first, LastIndex: %last) [LoopBody -> @pair, Completed -> @next]
+@pair:
+ %other = call Array_Get(TargetArray: $PendingRooms, Index: %inner.Index)
+ %overlap = call RoomsOverlap(A: %room, B: %other)
+ %disjoint = call Not_PreBool(A: %overlap)
+ %pairOK = call BooleanAND(A: $PlanPassed, B: %disjoint)
+ set $PlanPassed = %pairOK
+ end
+@next:
+ end
+@area:
+ %m2 = call Multiply_DoubleDouble(A: $WidthMetres, B: $LengthMetres)
+ %cm2 = call Multiply_DoubleDouble(A: %m2, B: 10000)
+ %areaOK = call EqualEqual_DoubleDouble(A: $PlanArea, B: %cm2)
+ %result = call BooleanAND(A: $PlanPassed, B: %areaOK)
+ set $PlanPassed = %result
+ return
+@bad:
+ set $PlanPassed = false
+ return
+}

@@ -1,0 +1,63 @@
+@meta(Category="House Generator")
+@flags(Public, CallInEditor)
+entry function RegenerateBuilding() {
+    call BeginTransaction(Context: "ResidentialGenerator", Description: "NSLOCTEXT(\"AshwoodHousing\", \"Regenerate\", \"Regenerate residential building\")", PrimaryObject: self)
+    call TransactObject(Object: self)
+    call BuildPlan()
+    %n0 = branch($LayoutValid) [false -> @else, true -> @then]
+
+@then:
+    call ClearGeometry()
+    call SetMaterial(Target: $Floor, ElementIndex: 1, Material: $FloorMaterial)
+    call SetMaterial(Target: $Exterior, ElementIndex: 1, Material: $ExteriorMaterial)
+    call SetMaterial(Target: $Entrance, ElementIndex: 1, Material: $ExteriorMaterial)
+    call SetMaterial(Target: $Window, ElementIndex: 1, Material: $ExteriorMaterial)
+    call SetMaterial(Target: $Corner, ElementIndex: 1, Material: $ExteriorMaterial)
+    call SetVisibility(Target: $RoofPanel, bNewVisibility: true, bPropagateToChildren: false)
+    call SetVisibility(Target: $RoofCorner, bNewVisibility: true, bPropagateToChildren: false)
+    call SetVisibility(Target: $Ceiling, bNewVisibility: true, bPropagateToChildren: false)
+    call BuildFloors()
+    call BuildShell()
+    call BuildRoof()
+    %countText = call Conv_IntToString(InInt: $RoomCount)
+    %status = call Concat_StrStr(A: "Generated rooms (excluding hallway): ", B: %countText)
+    set GenerationStatus = %status
+    exec -> @else
+
+@else:
+    call EndTransaction()
+    return
+}
+entry function ClearGeometry() {
+    call TransactObject(Object: $Ceiling)
+    call ClearInstances(Target: $Ceiling)
+    call TransactObject(Object: $Floor)
+    call ClearInstances(Target: $Floor)
+    call TransactObject(Object: $Exterior)
+    call ClearInstances(Target: $Exterior)
+    call TransactObject(Object: $Interior)
+    call ClearInstances(Target: $Interior)
+    call TransactObject(Object: $Corner)
+    call ClearInstances(Target: $Corner)
+    call TransactObject(Object: $Entrance)
+    call ClearInstances(Target: $Entrance)
+    call TransactObject(Object: $Doorway)
+    call ClearInstances(Target: $Doorway)
+    call TransactObject(Object: $Window)
+    call ClearInstances(Target: $Window)
+    call TransactObject(Object: $Frame)
+    call ClearInstances(Target: $Frame)
+    call TransactObject(Object: $Glass)
+    call ClearInstances(Target: $Glass)
+    call TransactObject(Object: $DoorFrame)
+    call ClearInstances(Target: $DoorFrame)
+    call TransactObject(Object: $DoorLeaf)
+    call ClearInstances(Target: $DoorLeaf)
+    call TransactObject(Object: $RoofPanel)
+    call ClearInstances(Target: $RoofPanel)
+    call TransactObject(Object: $RoofCorner)
+    call ClearInstances(Target: $RoofCorner)
+    call TransactObject(Object: $Foundation)
+    call ClearInstances(Target: $Foundation)
+    end
+}

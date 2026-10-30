@@ -1,14 +1,111 @@
-# Residential generator — Phase 3
+# Residential generator — Phase 4
 
-Phase 3 is implemented in the existing Blueprint-first generator:
+Phase 4 extends the existing Blueprint-first Phase 3 generator with deterministic room-aware furniture and interior lighting:
 
 - Generator: `/Game/_Main/Buildings/Procedural/BP_ResidentialGenerator`
 - Test level: `/Game/_Main/Buildings/Tests/L_ResidentialGenerator`
 - Structural kit: `/Game/ModularHousing/`
 
-The Call in Editor workflow, deterministic seed, 3–8 logical room support, validation-before-clear behaviour, collision, roofs, and Phase 2 central-hall layout remain. No C++, main-world, forest, PCG, furniture, loot, two-storey, paid dependency, redirector cleanup, asset move/rename, commit, or push was introduced.
+The Call in Editor workflow, floor-plan algorithms, deterministic seed, 3–8 logical room support, validation-before-clear behaviour, collision, roofs, porches, windows, materials, and gameplay foundations remain. No C++, main-world, forest, PCG, loot, two-storey, paid dependency, redirector cleanup, imported-asset edit, asset move/rename, commit, or push was introduced.
 
 Safe pre-change checkpoint: `Saved/ResidentialGenerator/Checkpoints/BeforePhase3_20261029_1245/`. It contains the pre-Phase-3 Blueprint, struct, test map, documentation, Blueprint decompile, live level dump, and asset-audit dumps. Third-party assets were read-only.
+
+Phase 4 checkpoint: `Saved/Phase4Checkpoint-20261030-103025/BP_ResidentialGenerator.uasset`. It is the generator immediately before the Phase 4 graph and component changes.
+
+## Phase 4 furniture and lighting
+
+### Targeted asset catalogue
+
+The imported packs were audited in place. No imported asset was moved, renamed, overwritten, or modified. Phase 4 keeps the selected paths in generator components so placement graphs do not repeat asset paths.
+
+Furniture used from `/Game/Fab/Interiors/Furniture/FreeFurniturePack/`:
+
+- Living: `SM_Modern_Sofa_2` (about 104.2 × 276.2 × 85.6 cm), `SM_Modern_Armchair` (104.5 × 136.7 × 85.7 cm), and `SM_Coffee_Table` (93.9 × 93.9 cm).
+- Bedroom: `SM_Modern_Bed_2` (232.1 × 235.4 × 112.9 cm), `SM_Bed_Table` (50 × 50 cm), and `SM_Modern_Cupboard` (282.3 × 75.8 × 256.9 cm).
+- Kitchen/dining: `SM_Modern_Cupboard`, `SM_Modern_Table` (193 × 90.9 cm), and `SM_Modern_Chair_1` (63.7 × 64.7 cm).
+- Bathroom: `SM_Bathtub` (177 × 99.6 cm) and `SM_Toilet` (44.4 × 69.4 cm).
+
+The furniture meshes use usable convex or complex-as-simple collision. Placement uses their audited bounds rather than assuming centred pivots: notably the sofa and bed have offset bounds origins. All furniture is placed at floor Z with unit scale and 90-degree rotations.
+
+Lighting used from `/Game/Fab/Interiors/Lighting/DCLightSet/`:
+
+- `Mesh_light_cylShadeCeiling` (about 51.5 × 51.5 × 100 cm), bottom pivot. It is rotated into the ceiling and used as a non-colliding, non-shadow-casting fixture mesh.
+- The pack contains fixture meshes/materials/particles but no usable light Actor Blueprint. Eight generator-owned Point Light components supply illumination at 235 cm. They use 550 cm attenuation, default intensity 900, and no dynamic shadows.
+
+### Placement algorithm
+
+`BuildFurniture` iterates the validated Phase 3 `Rooms` array after structural assembly. A `RandomStream` seeded from `Seed + FurnitureSeedOffset` controls permitted room-local variations. Regeneration clears only the generator's furniture ISMs, ceiling-fixture ISM, and eight point-light components.
+
+- Living rooms receive a wall seating group. Combined living/dining rooms use fixed outer zones and compact groups so the entrance-to-hall circulation spine stays open.
+- Bedrooms place beds against a front/back wall while shifting them away from the side doorway. Normal density adds a bedside table only where the room is wide enough and adds a wardrobe only in suitable deep internal rooms.
+- Kitchens use wall storage shifted away from the door in wide rooms. Dining sets use a compact two-chair form in kitchens and combined areas; standalone dining areas may use four chairs at Normal density.
+- Bathrooms receive the audited bathtub and toilet. No unrelated substitute meshes are used.
+- Hallways receive no furniture.
+- Mesh bounds, room bounds, facade position, doorway side, minimum room gates, and reserved capsule routes determine placement. The algorithm is intentionally template-based rather than an optimiser.
+
+`Sparse` omits optional armchairs, bedside tables, wardrobes, and extra dining chairs. `Normal` enables them when the room passes the relevant size and clearance gates.
+
+### Interactive furniture audit
+
+The imported `BP_Bed_Drawer`, `BP_Classic_Commode`, `BP_Classic_Commode_2`, `BP_Classic_Cupboard`, and `BP_Modern_Cupboard` Blueprints were inspected. They are component assemblies only: their audited graphs have no input, overlap, interaction-interface, drawer-opening, or close/open behaviour. Begin Play, overlap, and Tick are unused.
+
+Consequently Phase 4 does not spawn these actors or rewrite the third-party pack. `InteractiveFurnitureEnabled` is exposed as the requested future-compatible control, but is currently a documented no-op because the installed assets do not provide behaviour that can be safely integrated with the existing player. No interaction mapping, multiplayer path, inventory, or loot behaviour was added.
+
+### Interior lighting rules
+
+`BuildInteriorLighting` places one ceiling fixture and one reusable point light at the centre of each non-hall room, capped at eight illuminated room rectangles. Hallways are skipped to keep the light count bounded. `InteriorLightingEnabled = false` clears the fixture instances and resets every generator-owned point light to zero intensity. Manually placed level lights and actors are untouched.
+
+### Phase 4 controls
+
+- `FurnitureEnabled` — enables generator-owned furniture; disabling it restores an empty furnished layer without changing the house.
+- `FurnishingDensity` — `Sparse` or `Normal` via `/Game/_Main/Buildings/Procedural/E_ResidentialFurnishingDensity`.
+- `FurnitureSeedOffset` — separates furnishing variation from the floor-plan seed while remaining deterministic.
+- `InteractiveFurnitureEnabled` — reserved control; currently no-op for the audited pack as described above.
+- `InteriorLightingEnabled` — enables ceiling fixtures and generated point lights.
+- `InteriorLightIntensity` — additional designer-facing point-light intensity, default 900.
+
+`RegenerateBuilding` remains the single Call in Editor entry point. A successful call builds Phase 3 structure first, then furniture and lighting. Invalid plans still retain the previous valid house because validation occurs before any generated geometry is cleared.
+
+### Phase 4 examples
+
+The existing Phase 2 and Phase 3 houses are unchanged. A separate Phase 4 row is at Y=10500 cm:
+
+- X=0: `Phase4_LivingEntrance_Seed5101` — 10 × 12 m, 5 logical rooms, Normal density.
+- X=2200: `Phase4_FamilySuburban_Seed5202` — 11 × 13 m, 6 logical rooms, Normal density.
+- X=4400: `Phase4_OpenPlan_Seed5303` — 15 × 22 m, 5 logical rooms, Normal density.
+- X=6600: `Phase4_CentralHallway_Seed5404` — 12 × 12 m, 5 logical rooms, Sparse density.
+
+The generated examples contain 9/17/18/10 furniture instances and 5/6/6/5 ceiling lights respectively.
+
+### Phase 4 validation
+
+`Saved/ResidentialGenerator/Validation/phase4_targeted.json` records four passing cases, one for every explicit layout style and four different seeds. `Scripts/ResidentialGenerator/validate_phase4_editor.py` checks:
+
+- exact repeated room, furniture, fixture, and point-light transforms;
+- repeated regeneration without duplicate instances;
+- furniture pivots and audited 2D mesh bounds inside exactly one non-hall room;
+- pairwise furniture footprint non-overlap;
+- 42 cm radius / 96 cm half-height capsule clearance through entrances, halls, open-plan access legs, and room doorway lanes;
+- expected non-hall light counts, the eight-light cap, and zero intensity on unused lights;
+- `Sparse` versus `Normal` output;
+- furniture and lighting disable/restore behaviour.
+
+The final batch passed with zero detected footprint overlaps. It checked 6, 6, 8, and 7 capsule routes respectively. Typical measured regeneration was about 29–46 ms. The generator Blueprint compiled `UpToDate` with zero warnings/errors and the Blueprint, enum, and test level were saved.
+
+The final dirty-package audit found imported materials transiently marked dirty by ISM usage in the live editor. All 17 affected third-party material packages were reloaded from their original on-disk assets without saving them. The follow-up editor audit reported zero dirty packages, so no imported asset change is pending.
+
+A one-client standalone PIE smoke test started and stopped successfully with no loaded Blueprint errors. The PIE world had one player controller and all four Phase 4 actors. The Living Entrance example retained `LayoutValid = true`, 9 furniture instances, 5 fixture instances, and 5 active generated point lights in PIE. This proves saved generated content loads in the real gameplay world; it is not a visual-quality or interactive-furniture test.
+
+An automated interior screenshot was attempted, but the shared Level Editor viewport could not provide a pixel readback and no controllable app-window surface was available. Phase 4 visual-quality acceptance is therefore not claimed. The imported furniture Blueprints do not support an interactive PIE case, so interactive behaviour is also not claimed.
+
+### Missing categories and Phase 4 limitations
+
+- No suitable sink, stove, refrigerator, purpose-built counter run, shower, or bathroom sink was present in the audited furniture pack. These categories are left empty rather than substituted with unrelated meshes.
+- The selected cupboard mesh acts as wall storage in kitchens; it is not presented as a working appliance or counter.
+- Templates use axis-aligned rectangular rooms, 90-degree rotations, and the existing single-storey 300 cm height.
+- Lighting is deliberately simple and capped: one fixture per non-hall room rectangle, eight point lights maximum, no shadows, and no elaborate simulation.
+- Furniture placement is bounds- and route-aware but does not run full physics packing, navmesh generation, or arbitrary user-mesh optimisation.
+- Subjective composition, camera feel, and final lighting balance still require an in-editor visual pass.
 
 ## Imported asset audit
 
@@ -185,7 +282,7 @@ A standalone PIE session started with no loaded Blueprint errors. The real `BP_T
 - The canopy reuses a small pitched kit panel; it lacks bespoke flashing, gutters, fascia variants, and columns.
 - Marble stairs were rejected. No curved/terrain-following stairs or raised-foundation adaptation exists.
 - Doors remain cosmetic parked-open leaves or cased passages, not interactive doors.
-- No furniture, second exit, navmesh/AI pathfinding, multiplayer, rotated/non-unit-scale acceptance, terrain adaptation, or cold-editor reload test was added.
+- No second exit, generated navmesh/AI pathfinding, multiplayer furnishing behavior, rotated/non-unit-scale acceptance, terrain adaptation, or cold-editor reload test was added.
 - Capsule/PIE checks do not replace final subjective review of camera clipping, step feel, material taste, and proportions.
 
 ## How to inspect in Unreal Editor
@@ -200,12 +297,20 @@ A standalone PIE session started with no loaded Blueprint errors. The real `BP_T
 8. Switch `ExteriorStyle`; verify roof/trim remain independent. Use `Custom` to test `ExteriorMaterial`.
 9. Toggle `PorchEnabled` and cycle all porch styles. Repeated regeneration must not duplicate geometry.
 10. Use Play From Here outside an entrance and walk the public area, hall, and private doors. Automated PIE covered the living-entrance route; normal camera/control review remains recommended.
+11. Search the World Outliner for `Phase4_`. The four furnished examples are on the separate row at Y=10500 cm.
+12. Hide `Ceiling`, `RoofPanel`, and `RoofCorner` on one Phase 4 actor to review furniture and ceiling-light placement from above; restore visibility or press **RegenerateBuilding** afterward.
+13. On `Phase4_CentralHallway_Seed5404`, compare `Sparse` with `Normal`. Toggle `FurnitureEnabled` and `InteriorLightingEnabled` independently and regenerate to verify empty-house and unlit states.
+14. `InteractiveFurnitureEnabled` currently has no visible effect because the installed third-party furniture Blueprints contain no interaction graphs.
 
 ## Source and test files
 
 - `Scripts/ResidentialGenerator/phase3_layouts.bpir`
 - `Scripts/ResidentialGenerator/phase3_assembly.bpir`
 - `Scripts/ResidentialGenerator/validate_phase3_editor.py`
+- `Scripts/ResidentialGenerator/phase4_furniture_lighting.bpir`
+- `Scripts/ResidentialGenerator/phase4_furnishing.bpir`
+- `Scripts/ResidentialGenerator/phase4_workflow.bpir`
+- `Scripts/ResidentialGenerator/validate_phase4_editor.py`
 - Phase 2 BPIR files and `validate_editor.py` remain historical references.
 
-The `.uasset` is executable. BPIR files document graph changes and should only be replayed against the matching Phase 3 variable/component structure.
+The `.uasset` is executable. BPIR files document graph changes and should only be replayed against the matching Phase 4 variable/component structure.

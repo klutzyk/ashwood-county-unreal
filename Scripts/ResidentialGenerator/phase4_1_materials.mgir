@@ -1,0 +1,83 @@
+entry material `/Game/_Main/Buildings/Materials/Interiors/M_Ashwood_MatteTimber` {
+    property MaterialDomain: MD_Surface
+    property BlendMode: BLEND_Opaque
+    property ShadingModel: MSM_DefaultLit
+    property TwoSided: false
+    property bIsThinSurface: false
+    property TranslucencyLightingMode: TLM_VolumetricNonDirectional
+    property bUseMaterialAttributes: false
+    property OpacityMaskClipValue: 0.3333
+    property NumCustomizedUVs: 0
+    %scale = call `/Script/Engine.MaterialExpressionScalarParameter`(ParameterName: "BoardScale", SortPriority: 0, DefaultValue: 180.0) @(-1200, -120)
+    %albedoTex = call `/Script/Engine.MaterialExpressionTextureObject`(Texture: "/Game/ModularHousing/Textures/bs_WoodGrainDark/T_WoodGrainDark_Diffuse.T_WoodGrainDark_Diffuse") @(-920, -520)
+    %roughTex = call `/Script/Engine.MaterialExpressionTextureObject`(Texture: "/Game/ModularHousing/Textures/bs_WoodGrainDark/T_WoodGrainDark_Roughness.T_WoodGrainDark_Roughness") @(-920, -80)
+    %normalTex = call `/Script/Engine.MaterialExpressionTextureObject`(Texture: "/Game/ModularHousing/Textures/bs_WoodGrainDark/T_WoodGrainDark_Normal.T_WoodGrainDark_Normal", SamplerType: "SAMPLERTYPE_Normal") @(-920, 300)
+    %albedo = function_call `/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedTexture.WorldAlignedTexture`(TextureObject: %albedoTex, TextureSize: %scale) @(-680, -520)
+    %rough = function_call `/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedTexture.WorldAlignedTexture`(TextureObject: %roughTex, TextureSize: %scale) @(-680, -80)
+    %normal = function_call `/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedNormal.WorldAlignedNormal`(TextureObject: %normalTex, TextureSize: %scale) @(-680, 300)
+    %lighten = call `/Script/Engine.MaterialExpressionPower`(Base: %albedo[2], ConstExponent: 0.66) @(-390, -500)
+    %warm = constant Float3(1.0, 0.86, 0.68) @(-390, -330)
+    %warmWood = call `/Script/Engine.MaterialExpressionMultiply`(A: %lighten, B: %warm) @(-150, -460)
+    %matte = call `/Script/Engine.MaterialExpressionMax`(A: %rough[2], ConstB: 0.68) @(-240, -80)
+    %metal = constant Float1(0.0) @(-150, 80)
+    %spec = constant Float1(0.22) @(-150, 170)
+    output BaseColor: %warmWood
+    output Metallic: %metal
+    output Specular: %spec
+    output Roughness: %matte
+    output Normal: %normal[1]
+}
+
+entry material `/Game/_Main/Buildings/Materials/Interiors/M_Ashwood_WarmCream` {
+    property MaterialDomain: MD_Surface
+    property BlendMode: BLEND_Opaque
+    property ShadingModel: MSM_DefaultLit
+    property TwoSided: false
+    property bIsThinSurface: false
+    property TranslucencyLightingMode: TLM_VolumetricNonDirectional
+    property bUseMaterialAttributes: false
+    property OpacityMaskClipValue: 0.3333
+    property NumCustomizedUVs: 0
+    %scale = call `/Script/Engine.MaterialExpressionScalarParameter`(ParameterName: "PaintScale", SortPriority: 0, DefaultValue: 6.0) @(-1120, -120)
+    %albedoTex = call `/Script/Engine.MaterialExpressionTextureObject`(Texture: "/Game/ModularHousing/Textures/bs_WallPaintedWhiteMat/T_WallPaintedWhite_Diffuse.T_WallPaintedWhite_Diffuse") @(-880, -500)
+    %normalTex = call `/Script/Engine.MaterialExpressionTextureObject`(Texture: "/Game/ModularHousing/Textures/bs_WallPaintedWhiteMat/T_WallPaintedWhite_Normal.T_WallPaintedWhite_Normal") @(-880, 260)
+    %albedo = function_call `/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedTexture.WorldAlignedTexture`(TextureObject: %albedoTex, TextureSize: %scale) @(-640, -500)
+    %normal = function_call `/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedNormal.WorldAlignedNormal`(TextureObject: %normalTex, TextureSize: %scale) @(-640, 260)
+    %tint = constant Float3(0.83, 0.74, 0.61) @(-420, -300)
+    %paint = call `/Script/Engine.MaterialExpressionMultiply`(A: %albedo[2], B: %tint) @(-180, -460)
+    %rough = constant Float1(0.82) @(-180, -100)
+    %metal = constant Float1(0.0) @(-180, 0)
+    %spec = constant Float1(0.18) @(-180, 100)
+    output BaseColor: %paint
+    output Metallic: %metal
+    output Specular: %spec
+    output Roughness: %rough
+    output Normal: %normal[1]
+}
+
+entry material `/Game/_Main/Buildings/Materials/Interiors/M_Ashwood_SoftSage` {
+    property MaterialDomain: MD_Surface
+    property BlendMode: BLEND_Opaque
+    property ShadingModel: MSM_DefaultLit
+    property TwoSided: false
+    property bIsThinSurface: false
+    property TranslucencyLightingMode: TLM_VolumetricNonDirectional
+    property bUseMaterialAttributes: false
+    property OpacityMaskClipValue: 0.3333
+    property NumCustomizedUVs: 0
+    %scale = call `/Script/Engine.MaterialExpressionScalarParameter`(ParameterName: "PaintScale", SortPriority: 0, DefaultValue: 6.0) @(-1120, -120)
+    %albedoTex = call `/Script/Engine.MaterialExpressionTextureObject`(Texture: "/Game/ModularHousing/Textures/bs_WallPaintedWhiteMat/T_WallPaintedWhite_Diffuse.T_WallPaintedWhite_Diffuse") @(-880, -500)
+    %normalTex = call `/Script/Engine.MaterialExpressionTextureObject`(Texture: "/Game/ModularHousing/Textures/bs_WallPaintedWhiteMat/T_WallPaintedWhite_Normal.T_WallPaintedWhite_Normal") @(-880, 260)
+    %albedo = function_call `/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedTexture.WorldAlignedTexture`(TextureObject: %albedoTex, TextureSize: %scale) @(-640, -500)
+    %normal = function_call `/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedNormal.WorldAlignedNormal`(TextureObject: %normalTex, TextureSize: %scale) @(-640, 260)
+    %tint = constant Float3(0.62, 0.70, 0.56) @(-420, -300)
+    %paint = call `/Script/Engine.MaterialExpressionMultiply`(A: %albedo[2], B: %tint) @(-180, -460)
+    %rough = constant Float1(0.84) @(-180, -100)
+    %metal = constant Float1(0.0) @(-180, 0)
+    %spec = constant Float1(0.18) @(-180, 100)
+    output BaseColor: %paint
+    output Metallic: %metal
+    output Specular: %spec
+    output Roughness: %rough
+    output Normal: %normal[1]
+}

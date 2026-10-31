@@ -1,0 +1,171 @@
+entry function ClearGeneratedInteriors() {
+    call TransactObject(Object: $Furniture_Sofa)
+    call ClearInstances(Target: $Furniture_Sofa)
+    call TransactObject(Object: $Furniture_SofaClassic)
+    call ClearInstances(Target: $Furniture_SofaClassic)
+    call TransactObject(Object: $Furniture_Armchair)
+    call ClearInstances(Target: $Furniture_Armchair)
+    call TransactObject(Object: $Furniture_ArmchairClassic)
+    call ClearInstances(Target: $Furniture_ArmchairClassic)
+    call TransactObject(Object: $Furniture_CoffeeTable)
+    call ClearInstances(Target: $Furniture_CoffeeTable)
+    call TransactObject(Object: $Furniture_Bed)
+    call ClearInstances(Target: $Furniture_Bed)
+    call TransactObject(Object: $Furniture_Bedside)
+    call ClearInstances(Target: $Furniture_Bedside)
+    call TransactObject(Object: $Furniture_Wardrobe)
+    call ClearInstances(Target: $Furniture_Wardrobe)
+    call TransactObject(Object: $Furniture_WardrobeClassic)
+    call ClearInstances(Target: $Furniture_WardrobeClassic)
+    call TransactObject(Object: $Furniture_DresserModern)
+    call ClearInstances(Target: $Furniture_DresserModern)
+    call TransactObject(Object: $Furniture_DresserClassic)
+    call ClearInstances(Target: $Furniture_DresserClassic)
+    call TransactObject(Object: $Furniture_DiningTable)
+    call ClearInstances(Target: $Furniture_DiningTable)
+    call TransactObject(Object: $Furniture_DiningTableClassic)
+    call ClearInstances(Target: $Furniture_DiningTableClassic)
+    call TransactObject(Object: $Furniture_DiningChair)
+    call ClearInstances(Target: $Furniture_DiningChair)
+    call TransactObject(Object: $Furniture_DiningChairClassic)
+    call ClearInstances(Target: $Furniture_DiningChairClassic)
+    call TransactObject(Object: $Furniture_Bathtub)
+    call ClearInstances(Target: $Furniture_Bathtub)
+    call TransactObject(Object: $Furniture_Toilet)
+    call ClearInstances(Target: $Furniture_Toilet)
+    call TransactObject(Object: $Furniture_Television)
+    call ClearInstances(Target: $Furniture_Television)
+    call TransactObject(Object: $Furniture_TableLamp)
+    call ClearInstances(Target: $Furniture_TableLamp)
+    call TransactObject(Object: $Furniture_Picture)
+    call ClearInstances(Target: $Furniture_Picture)
+    call TransactObject(Object: $InteriorLightFixture)
+    call ClearInstances(Target: $InteriorLightFixture)
+    call SetIntensity(Target: $InteriorPointLight1, NewIntensity: 0)
+    call SetIntensity(Target: $InteriorPointLight2, NewIntensity: 0)
+    call SetIntensity(Target: $InteriorPointLight3, NewIntensity: 0)
+    call SetIntensity(Target: $InteriorPointLight4, NewIntensity: 0)
+    call SetIntensity(Target: $InteriorPointLight5, NewIntensity: 0)
+    call SetIntensity(Target: $InteriorPointLight6, NewIntensity: 0)
+    call SetIntensity(Target: $InteriorPointLight7, NewIntensity: 0)
+    call SetIntensity(Target: $InteriorPointLight8, NewIntensity: 0)
+    set GeneratedLightCount = 0
+    set OpenPlanFurnishedCount = 0
+    return
+}
+
+entry function ConfigureGeneratedLight(object<PointLightComponent> TargetLight, float X, float Y, float Intensity, float Radius) {
+    %location = call MakeVector(X: $X, Y: $Y, Z: 235)
+    call SetRelativeLocation(Target: $TargetLight, NewLocation: %location)
+    call SetUseTemperature(Target: $TargetLight, bNewValue: true)
+    call SetTemperature(Target: $TargetLight, NewTemperature: 2950)
+    call SetAttenuationRadius(Target: $TargetLight, NewRadius: $Radius)
+    call SetIndirectLightingIntensity(Target: $TargetLight, NewIntensity: 0.65)
+    call SetVolumetricScatteringIntensity(Target: $TargetLight, NewIntensity: 0.15)
+    call SetIntensity(Target: $TargetLight, NewIntensity: $Intensity)
+    return
+}
+
+entry function PlaceCeilingFixture(float X, float Y) {
+    %location = call MakeVector(X: $X, Y: $Y, Z: 220)
+    %rotation = call MakeRotator(Roll: 0, Pitch: 0, Yaw: 0)
+    %scale = call MakeVector(X: 1, Y: 1, Z: 1)
+    %transform = call MakeTransform(Location: %location, Rotation: %rotation, Scale: %scale)
+    call AddInstance(Target: $InteriorLightFixture, InstanceTransform: %transform, bWorldSpace: false)
+    return
+}
+
+entry function AssignGeneratedLight(int Index, float X, float Y, float Intensity, float Radius) {
+    %which = switch_int($Index) [0 -> @light1, 1 -> @light2, 2 -> @light3, 3 -> @light4, 4 -> @light5, 5 -> @light6, 6 -> @light7, 7 -> @light8, default -> @done]
+@light1:
+    call ConfigureGeneratedLight(TargetLight: $InteriorPointLight1, X: $X, Y: $Y, Intensity: $Intensity, Radius: $Radius)
+    return
+@light2:
+    call ConfigureGeneratedLight(TargetLight: $InteriorPointLight2, X: $X, Y: $Y, Intensity: $Intensity, Radius: $Radius)
+    return
+@light3:
+    call ConfigureGeneratedLight(TargetLight: $InteriorPointLight3, X: $X, Y: $Y, Intensity: $Intensity, Radius: $Radius)
+    return
+@light4:
+    call ConfigureGeneratedLight(TargetLight: $InteriorPointLight4, X: $X, Y: $Y, Intensity: $Intensity, Radius: $Radius)
+    return
+@light5:
+    call ConfigureGeneratedLight(TargetLight: $InteriorPointLight5, X: $X, Y: $Y, Intensity: $Intensity, Radius: $Radius)
+    return
+@light6:
+    call ConfigureGeneratedLight(TargetLight: $InteriorPointLight6, X: $X, Y: $Y, Intensity: $Intensity, Radius: $Radius)
+    return
+@light7:
+    call ConfigureGeneratedLight(TargetLight: $InteriorPointLight7, X: $X, Y: $Y, Intensity: $Intensity, Radius: $Radius)
+    return
+@light8:
+    call ConfigureGeneratedLight(TargetLight: $InteriorPointLight8, X: $X, Y: $Y, Intensity: $Intensity, Radius: $Radius)
+    return
+@done:
+    return
+}
+
+entry function BuildInteriorLighting() {
+    branch($InteriorLightingEnabled) [true -> @enabled, false -> @done]
+@enabled:
+    %count = call Array_Length(TargetArray: $Rooms)
+    %last = call Subtract_IntInt(A: %count, B: 1)
+    %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @room, Completed -> @done]
+@room:
+    %record = call Array_Get(TargetArray: $Rooms, Index: %loop.Index)
+    %parts = break<ST_HouseRoom>(%record.Item)
+    %hall = call EqualEqual_NameName(A: %parts.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Hallway")
+    %notHall = call Not_PreBool(A: %hall)
+    %underLimit = call Less_IntInt(A: $GeneratedLightCount, B: 8)
+    %use = call BooleanAND(A: %notHall, B: %underLimit)
+    branch(%use) [true -> @place, false -> @next]
+@place:
+    %min = call BreakVector(InVec: %parts.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %parts.Size_6_A050281547D25A85B4448B81EF60035D)
+    %halfX = call Divide_DoubleDouble(A: %size.X, B: 2)
+    %halfY = call Divide_DoubleDouble(A: %size.Y, B: 2)
+    %centerX = call Add_DoubleDouble(A: %min.X, B: %halfX)
+    %centerY = call Add_DoubleDouble(A: %min.Y, B: %halfY)
+    %bedroom = call EqualEqual_NameName(A: %parts.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Bedroom")
+    %bathroom = call EqualEqual_NameName(A: %parts.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Bathroom")
+    %kitchen = call EqualEqual_NameName(A: %parts.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Kitchen")
+    %bedIntensity = call Multiply_DoubleDouble(A: $InteriorLightIntensity, B: 0.55)
+    %bathIntensity = call Multiply_DoubleDouble(A: $InteriorLightIntensity, B: 0.7)
+    %kitchenIntensity = call Multiply_DoubleDouble(A: $InteriorLightIntensity, B: 0.85)
+    %publicIntensity = call Multiply_DoubleDouble(A: $InteriorLightIntensity, B: 0.68)
+    %afterBedroom = select(Index: %bedroom, false: %publicIntensity, true: %bedIntensity)
+    %afterBathroom = select(Index: %bathroom, false: %afterBedroom, true: %bathIntensity)
+    %roomIntensity = select(Index: %kitchen, false: %afterBathroom, true: %kitchenIntensity)
+    %privateRoom = call BooleanOR(A: %bedroom, B: %bathroom)
+    %roomRadius = select(Index: %privateRoom, false: 525.0, true: 450.0)
+    call PlaceCeilingFixture(X: %centerX, Y: %centerY)
+    call AssignGeneratedLight(Index: $GeneratedLightCount, X: %centerX, Y: %centerY, Intensity: %roomIntensity, Radius: %roomRadius)
+    %nextCount = call Add_IntInt(A: $GeneratedLightCount, B: 1)
+    set GeneratedLightCount = %nextCount
+    end
+@next:
+    end
+@done:
+    return
+}
+
+entry function ApplyInteriorFinish() {
+    call SetMaterial(Target: $Ceiling, ElementIndex: 0, Material: $CeilingMaterial)
+    call SetMaterial(Target: $Ceiling, ElementIndex: 1, Material: $CeilingMaterial)
+    branch($InteriorMaterialVariationEnabled) [true -> @variation, false -> @fallback]
+@variation:
+    %classic = call EqualEqual_IntInt(A: $FurnitureTheme, B: 1)
+    branch(%classic) [true -> @sage, false -> @cream]
+@sage:
+    call SetMaterial(Target: $Interior, ElementIndex: 0, Material: $SoftSageWallMaterial)
+    call SetMaterial(Target: $Doorway, ElementIndex: 0, Material: $SoftSageWallMaterial)
+    return
+@cream:
+    call SetMaterial(Target: $Interior, ElementIndex: 0, Material: $WarmNeutralWallMaterial)
+    call SetMaterial(Target: $Doorway, ElementIndex: 0, Material: $WarmNeutralWallMaterial)
+    return
+@fallback:
+    call SetMaterial(Target: $Interior, ElementIndex: 0, Material: $InteriorWallMaterial)
+    call SetMaterial(Target: $Doorway, ElementIndex: 0, Material: $InteriorWallMaterial)
+    return
+}

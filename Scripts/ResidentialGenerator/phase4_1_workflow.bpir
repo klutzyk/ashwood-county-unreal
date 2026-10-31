@@ -1,0 +1,30 @@
+@meta(Category="House Generator")
+@flags(Public, CallInEditor)
+entry function RegenerateBuilding() {
+    call BeginTransaction(Context: "ResidentialGenerator", Description: "NSLOCTEXT(\"AshwoodHousing\", \"RegeneratePhase41\", \"Regenerate Phase 4.1 residential building\")", PrimaryObject: self)
+    call TransactObject(Object: self)
+    call BuildPlan()
+    branch($LayoutValid) [true -> @build, false -> @finish]
+@build:
+    call SelectFurnitureTheme()
+    call ClearGeometry()
+    call ClearGeneratedInteriors()
+    call ApplyMaterials()
+    call ApplyInteriorFinish()
+    call SetVisibility(Target: $RoofPanel, bNewVisibility: true, bPropagateToChildren: false)
+    call SetVisibility(Target: $RoofCorner, bNewVisibility: true, bPropagateToChildren: false)
+    call SetVisibility(Target: $Ceiling, bNewVisibility: true, bPropagateToChildren: false)
+    call BuildFloors()
+    call BuildShell()
+    call BuildRoof()
+    call BuildPorch()
+    call BuildFurniture()
+    call BuildInteriorLighting()
+    %roomText = call Conv_IntToString(InInt: $RoomCount)
+    %status = call Concat_StrStr(A: "Generated Phase 4.1 interior; logical rooms: ", B: %roomText)
+    set GenerationStatus = %status
+    exec -> @finish
+@finish:
+    call EndTransaction()
+    return
+}

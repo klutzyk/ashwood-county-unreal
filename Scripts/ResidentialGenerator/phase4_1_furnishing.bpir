@@ -1,0 +1,397 @@
+entry function SelectFurnitureTheme() {
+    %seed = call Add_IntInt(A: $Seed, B: $FurnitureSeedOffset)
+    %stream = call MakeRandomStream(InitialSeed: %seed)
+    set FurnitureStream = %stream
+    %theme = call RandomIntegerInRangeFromStream(Stream: $FurnitureStream, Min: 0, Max: 1)
+    set FurnitureTheme = %theme
+    return
+}
+
+entry function PlaceThemedSofa(float X, float Y, float Yaw) {
+    %classic = call EqualEqual_IntInt(A: $FurnitureTheme, B: 1)
+    branch(%classic) [true -> @classicStyle, false -> @modernStyle]
+@classicStyle:
+    %classicYaw = call Subtract_DoubleDouble(A: $Yaw, B: 90)
+    call Place(Component: $Furniture_SofaClassic, X: $X, Y: $Y, Z: 0, Yaw: %classicYaw, SX: 1, SY: 1, SZ: 1)
+    return
+@modernStyle:
+    call Place(Component: $Furniture_Sofa, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+    return
+}
+
+entry function PlaceThemedArmchair(float X, float Y, float Yaw) {
+    %classic = call EqualEqual_IntInt(A: $FurnitureTheme, B: 1)
+    branch(%classic) [true -> @classicStyle, false -> @modernStyle]
+@classicStyle:
+    call Place(Component: $Furniture_ArmchairClassic, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+    return
+@modernStyle:
+    call Place(Component: $Furniture_Armchair, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+    return
+}
+
+entry function PlaceThemedDiningTable(float X, float Y, float Yaw) {
+    %classic = call EqualEqual_IntInt(A: $FurnitureTheme, B: 1)
+    branch(%classic) [true -> @classicStyle, false -> @modernStyle]
+@classicStyle:
+    %classicYaw = call Add_DoubleDouble(A: $Yaw, B: 90)
+    call Place(Component: $Furniture_DiningTableClassic, X: $X, Y: $Y, Z: 0, Yaw: %classicYaw, SX: 0.85, SY: 0.85, SZ: 1)
+    return
+@modernStyle:
+    call Place(Component: $Furniture_DiningTable, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+    return
+}
+
+entry function PlaceThemedDiningChair(float X, float Y, float Yaw) {
+    %classic = call EqualEqual_IntInt(A: $FurnitureTheme, B: 1)
+    branch(%classic) [true -> @classicStyle, false -> @modernStyle]
+@classicStyle:
+    call Place(Component: $Furniture_DiningChairClassic, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 0.95, SY: 0.95, SZ: 0.95)
+    return
+@modernStyle:
+    call Place(Component: $Furniture_DiningChair, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+    return
+}
+
+entry function PlaceThemedWardrobe(float X, float Y, float Yaw) {
+    %classic = call EqualEqual_IntInt(A: $FurnitureTheme, B: 1)
+    branch(%classic) [true -> @classicStyle, false -> @modernStyle]
+@classicStyle:
+    call Place(Component: $Furniture_WardrobeClassic, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+    return
+@modernStyle:
+    call Place(Component: $Furniture_Wardrobe, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 0.85, SY: 0.85, SZ: 0.95)
+    return
+}
+
+entry function PlaceThemedDresserFocal(float X, float Y, float Yaw) {
+    %classic = call EqualEqual_IntInt(A: $FurnitureTheme, B: 1)
+    branch(%classic) [true -> @classicStyle, false -> @modernStyle]
+@classicStyle:
+    call Place(Component: $Furniture_DresserClassic, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Furniture_Television, X: $X, Y: $Y, Z: 100, Yaw: $Yaw, SX: 0.9, SY: 0.9, SZ: 0.9)
+    return
+@modernStyle:
+    call Place(Component: $Furniture_DresserModern, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Furniture_Television, X: $X, Y: $Y, Z: 88, Yaw: $Yaw, SX: 0.9, SY: 0.9, SZ: 0.9)
+    return
+}
+
+entry function PlaceThemedBedroomDresser(float X, float Y, float Yaw) {
+    %classic = call EqualEqual_IntInt(A: $FurnitureTheme, B: 1)
+    branch(%classic) [true -> @classicStyle, false -> @modernStyle]
+@classicStyle:
+    call Place(Component: $Furniture_DresserClassic, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+    return
+@modernStyle:
+    call Place(Component: $Furniture_DresserModern, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+    return
+}
+
+entry function FurnishBedroomExtras(struct<ST_HouseRoom> Room, bool BedAtBack, bool DoorAtRight) {
+    %normal = call EqualEqual_ByteByte(A: $FurnishingDensity, B: E_ResidentialFurnishingDensity::Normal)
+    branch(%normal) [true -> @normalDensity, false -> @done]
+@normalDensity:
+    %parts = break<ST_HouseRoom>($Room)
+    %min = call BreakVector(InVec: %parts.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %parts.Size_6_A050281547D25A85B4448B81EF60035D)
+    %halfX = call Divide_DoubleDouble(A: %size.X, B: 2)
+    %halfY = call Divide_DoubleDouble(A: %size.Y, B: 2)
+    %centerX = call Add_DoubleDouble(A: %min.X, B: %halfX)
+    %centerY = call Add_DoubleDouble(A: %min.Y, B: %halfY)
+    %endX = call Add_DoubleDouble(A: %min.X, B: %size.X)
+    %endY = call Add_DoubleDouble(A: %min.Y, B: %size.Y)
+    %leftBedX = call Add_DoubleDouble(A: %min.X, B: 130)
+    %rightBedX = call Subtract_DoubleDouble(A: %endX, B: 130)
+    %rightSideX = call Add_DoubleDouble(A: %leftBedX, B: 165)
+    %leftSideX = call Subtract_DoubleDouble(A: %rightBedX, B: 165)
+    %bedX = select(Index: $DoorAtRight, false: %rightBedX, true: %leftBedX)
+    %bedsideX = select(Index: $DoorAtRight, false: %leftSideX, true: %rightSideX)
+    %dresserLeftX = call Add_DoubleDouble(A: %min.X, B: 100)
+    %dresserRightX = call Subtract_DoubleDouble(A: %endX, B: 100)
+    %dresserX = select(Index: $DoorAtRight, false: %dresserRightX, true: %dresserLeftX)
+    %wide = call Greater_DoubleDouble(A: %size.X, B: 400)
+    branch(%wide) [true -> @bedside, false -> @dresserCheck]
+@bedside:
+    branch($BedAtBack) [true -> @backExtras, false -> @frontExtras]
+@backExtras:
+    %backBedY = call Subtract_DoubleDouble(A: %endY, B: 125)
+    %backPictureY = call Subtract_DoubleDouble(A: %endY, B: 4)
+    call Place(Component: $Furniture_Bedside, X: %bedsideX, Y: %backBedY, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Furniture_TableLamp, X: %bedsideX, Y: %backBedY, Z: 61, Yaw: 0, SX: 0.75, SY: 0.75, SZ: 0.75)
+    call Place(Component: $Furniture_Picture, X: %bedX, Y: %backPictureY, Z: 178, Yaw: 180, SX: 1.15, SY: 1.15, SZ: 1.15)
+    exec -> @dresserCheck
+@frontExtras:
+    %frontBedY = call Add_DoubleDouble(A: %min.Y, B: 125)
+    %frontPictureY = call Add_DoubleDouble(A: %min.Y, B: 4)
+    call Place(Component: $Furniture_Bedside, X: %bedsideX, Y: %frontBedY, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Furniture_TableLamp, X: %bedsideX, Y: %frontBedY, Z: 61, Yaw: 180, SX: 0.75, SY: 0.75, SZ: 0.75)
+    call Place(Component: $Furniture_Picture, X: %bedX, Y: %frontPictureY, Z: 178, Yaw: 0, SX: 1.15, SY: 1.15, SZ: 1.15)
+    exec -> @dresserCheck
+@dresserCheck:
+    %deep = call Greater_DoubleDouble(A: %size.Y, B: 360)
+    branch(%deep) [true -> @dresser, false -> @done]
+@dresser:
+    branch($BedAtBack) [true -> @frontDresser, false -> @backDresser]
+@frontDresser:
+    %dresserFrontY = call Add_DoubleDouble(A: %min.Y, B: 35)
+    call PlaceThemedBedroomDresser(X: %dresserX, Y: %dresserFrontY, Yaw: 0)
+    exec -> @wardrobeCheck
+@backDresser:
+    %dresserBackY = call Subtract_DoubleDouble(A: %endY, B: 35)
+    call PlaceThemedBedroomDresser(X: %dresserX, Y: %dresserBackY, Yaw: 180)
+    exec -> @wardrobeCheck
+@wardrobeCheck:
+    %veryWide = call Greater_DoubleDouble(A: %size.X, B: 540)
+    %veryDeep = call Greater_DoubleDouble(A: %size.Y, B: 500)
+    %canWardrobe = call BooleanAND(A: %veryWide, B: %veryDeep)
+    branch(%canWardrobe) [true -> @wardrobe, false -> @done]
+@wardrobe:
+    branch($DoorAtRight) [true -> @leftWall, false -> @rightWall]
+@leftWall:
+    %leftWardrobeX = call Add_DoubleDouble(A: %min.X, B: 45)
+    call PlaceThemedWardrobe(X: %leftWardrobeX, Y: %centerY, Yaw: 90)
+    return
+@rightWall:
+    %rightWardrobeX = call Subtract_DoubleDouble(A: %endX, B: 45)
+    call PlaceThemedWardrobe(X: %rightWardrobeX, Y: %centerY, Yaw: 270)
+    return
+@done:
+    return
+}
+
+entry function FurnishBathroom(struct<ST_HouseRoom> Room) {
+    %parts = break<ST_HouseRoom>($Room)
+    %min = call BreakVector(InVec: %parts.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %parts.Size_6_A050281547D25A85B4448B81EF60035D)
+    %halfX = call Divide_DoubleDouble(A: %size.X, B: 2)
+    %centerX = call Add_DoubleDouble(A: %min.X, B: %halfX)
+    %endX = call Add_DoubleDouble(A: %min.X, B: %size.X)
+    %endY = call Add_DoubleDouble(A: %min.Y, B: %size.Y)
+    %door = call BreakVector(InVec: %parts.DoorCenter_8_16660F964D81C9BEF3895C9A21215F87)
+    %doorAtRight = call Greater_DoubleDouble(A: %door.X, B: %centerX)
+    %leftToiletX = call Add_DoubleDouble(A: %min.X, B: 55)
+    %rightToiletX = call Subtract_DoubleDouble(A: %endX, B: 55)
+    %toiletX = select(Index: %doorAtRight, false: %rightToiletX, true: %leftToiletX)
+    %rearFacade = call EqualEqual_DoubleDouble(A: %endY, B: $L)
+    branch(%rearFacade) [true -> @fixturesFront, false -> @fixturesBack]
+@fixturesFront:
+    %bathFrontY = call Add_DoubleDouble(A: %min.Y, B: 60)
+    %toiletBackY = call Subtract_DoubleDouble(A: %endY, B: 50)
+    call Place(Component: $Furniture_Bathtub, X: %centerX, Y: %bathFrontY, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Furniture_Toilet, X: %toiletX, Y: %toiletBackY, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    return
+@fixturesBack:
+    %bathBackY = call Subtract_DoubleDouble(A: %endY, B: 60)
+    %toiletFrontY = call Add_DoubleDouble(A: %min.Y, B: 50)
+    call Place(Component: $Furniture_Bathtub, X: %centerX, Y: %bathBackY, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call Place(Component: $Furniture_Toilet, X: %toiletX, Y: %toiletFrontY, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    return
+}
+
+entry function FurnishLivingAtX(struct<ST_HouseRoom> Room, float GroupX) {
+    %parts = break<ST_HouseRoom>($Room)
+    %min = call BreakVector(InVec: %parts.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %parts.Size_6_A050281547D25A85B4448B81EF60035D)
+    %halfX = call Divide_DoubleDouble(A: %size.X, B: 2)
+    %centerX = call Add_DoubleDouble(A: %min.X, B: %halfX)
+    %groupAtRight = call Greater_DoubleDouble(A: $GroupX, B: %centerX)
+    %chairLeftX = call Subtract_DoubleDouble(A: $GroupX, B: 220)
+    %chairRightX = call Add_DoubleDouble(A: $GroupX, B: 220)
+    %chairX = select(Index: %groupAtRight, false: %chairRightX, true: %chairLeftX)
+    %chairYaw = select(Index: %groupAtRight, false: 180.0, true: 0.0)
+    %sideLeftX = call Subtract_DoubleDouble(A: $GroupX, B: 160)
+    %sideRightX = call Add_DoubleDouble(A: $GroupX, B: 160)
+    %sideX = select(Index: %groupAtRight, false: %sideRightX, true: %sideLeftX)
+    %endY = call Add_DoubleDouble(A: %min.Y, B: %size.Y)
+    %frontFacade = call EqualEqual_DoubleDouble(A: %min.Y, B: 0)
+    branch(%frontFacade) [true -> @backWall, false -> @rearCheck]
+@rearCheck:
+    %rearFacade = call EqualEqual_DoubleDouble(A: %endY, B: $L)
+    branch(%rearFacade) [true -> @frontWall, false -> @varyWall]
+@varyWall:
+    %wallRoll = call RandomIntegerInRangeFromStream(Stream: $FurnitureStream, Min: 0, Max: 1)
+    %useBack = call EqualEqual_IntInt(A: %wallRoll, B: 1)
+    branch(%useBack) [true -> @backWall, false -> @frontWall]
+@backWall:
+    %sofaBackY = call Subtract_DoubleDouble(A: %endY, B: 60)
+    %tableBackY = call Subtract_DoubleDouble(A: %endY, B: 220)
+    %tvFrontY = call Add_DoubleDouble(A: %min.Y, B: 35)
+    %pictureBackY = call Subtract_DoubleDouble(A: %endY, B: 4)
+    call PlaceThemedSofa(X: $GroupX, Y: %sofaBackY, Yaw: 90)
+    call Place(Component: $Furniture_CoffeeTable, X: $GroupX, Y: %tableBackY, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceThemedDresserFocal(X: $GroupX, Y: %tvFrontY, Yaw: 0)
+    %normalBack = call EqualEqual_ByteByte(A: $FurnishingDensity, B: E_ResidentialFurnishingDensity::Normal)
+    branch(%normalBack) [true -> @backDetails, false -> @done]
+@backDetails:
+    call PlaceThemedArmchair(X: %chairX, Y: %tableBackY, Yaw: %chairYaw)
+    call Place(Component: $Furniture_Bedside, X: %sideX, Y: %sofaBackY, Z: 0, Yaw: 0, SX: 0.9, SY: 0.9, SZ: 0.9)
+    call Place(Component: $Furniture_TableLamp, X: %sideX, Y: %sofaBackY, Z: 55, Yaw: 0, SX: 0.75, SY: 0.75, SZ: 0.75)
+    call Place(Component: $Furniture_Picture, X: $GroupX, Y: %pictureBackY, Z: 180, Yaw: 180, SX: 1.3, SY: 1.3, SZ: 1.3)
+    return
+@frontWall:
+    %sofaFrontY = call Add_DoubleDouble(A: %min.Y, B: 60)
+    %tableFrontY = call Add_DoubleDouble(A: %min.Y, B: 220)
+    %tvBackY = call Subtract_DoubleDouble(A: %endY, B: 35)
+    %pictureFrontY = call Add_DoubleDouble(A: %min.Y, B: 4)
+    call PlaceThemedSofa(X: $GroupX, Y: %sofaFrontY, Yaw: 270)
+    call Place(Component: $Furniture_CoffeeTable, X: $GroupX, Y: %tableFrontY, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceThemedDresserFocal(X: $GroupX, Y: %tvBackY, Yaw: 180)
+    %normalFront = call EqualEqual_ByteByte(A: $FurnishingDensity, B: E_ResidentialFurnishingDensity::Normal)
+    branch(%normalFront) [true -> @frontDetails, false -> @done]
+@frontDetails:
+    call PlaceThemedArmchair(X: %chairX, Y: %tableFrontY, Yaw: %chairYaw)
+    call Place(Component: $Furniture_Bedside, X: %sideX, Y: %sofaFrontY, Z: 0, Yaw: 180, SX: 0.9, SY: 0.9, SZ: 0.9)
+    call Place(Component: $Furniture_TableLamp, X: %sideX, Y: %sofaFrontY, Z: 55, Yaw: 180, SX: 0.75, SY: 0.75, SZ: 0.75)
+    call Place(Component: $Furniture_Picture, X: $GroupX, Y: %pictureFrontY, Z: 180, Yaw: 0, SX: 1.3, SY: 1.3, SZ: 1.3)
+    return
+@done:
+    return
+}
+
+entry function FurnishCompactLivingAtX(struct<ST_HouseRoom> Room, float GroupX, float TableX) {
+    %parts = break<ST_HouseRoom>($Room)
+    %min = call BreakVector(InVec: %parts.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %parts.Size_6_A050281547D25A85B4448B81EF60035D)
+    %endY = call Add_DoubleDouble(A: %min.Y, B: %size.Y)
+    %frontFacade = call EqualEqual_DoubleDouble(A: %min.Y, B: 0)
+    branch(%frontFacade) [true -> @backWall, false -> @rearCheck]
+@rearCheck:
+    %rearFacade = call EqualEqual_DoubleDouble(A: %endY, B: $L)
+    branch(%rearFacade) [true -> @frontWall, false -> @varyWall]
+@varyWall:
+    %wallRoll = call RandomIntegerInRangeFromStream(Stream: $FurnitureStream, Min: 0, Max: 1)
+    %useBack = call EqualEqual_IntInt(A: %wallRoll, B: 1)
+    branch(%useBack) [true -> @backWall, false -> @frontWall]
+@backWall:
+    %sofaBackY = call Subtract_DoubleDouble(A: %endY, B: 60)
+    %tableBackY = call Subtract_DoubleDouble(A: %endY, B: 180)
+    %tvFrontY = call Add_DoubleDouble(A: %min.Y, B: 35)
+    call PlaceThemedSofa(X: $GroupX, Y: %sofaBackY, Yaw: 90)
+    call Place(Component: $Furniture_CoffeeTable, X: $GroupX, Y: %tableBackY, Z: 0, Yaw: 0, SX: 0.5, SY: 0.5, SZ: 0.9)
+    call PlaceThemedDresserFocal(X: $GroupX, Y: %tvFrontY, Yaw: 0)
+    return
+@frontWall:
+    %sofaFrontY = call Add_DoubleDouble(A: %min.Y, B: 60)
+    %tableFrontY = call Add_DoubleDouble(A: %min.Y, B: 180)
+    %tvBackY = call Subtract_DoubleDouble(A: %endY, B: 35)
+    call PlaceThemedSofa(X: $GroupX, Y: %sofaFrontY, Yaw: 270)
+    call Place(Component: $Furniture_CoffeeTable, X: $GroupX, Y: %tableFrontY, Z: 0, Yaw: 0, SX: 0.5, SY: 0.5, SZ: 0.9)
+    call PlaceThemedDresserFocal(X: $GroupX, Y: %tvBackY, Yaw: 180)
+    return
+}
+
+entry function FurnishDiningAtX(struct<ST_HouseRoom> Room, float CenterX) {
+    %parts = break<ST_HouseRoom>($Room)
+    %min = call BreakVector(InVec: %parts.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %parts.Size_6_A050281547D25A85B4448B81EF60035D)
+    %wide = call Greater_DoubleDouble(A: %size.X, B: 410)
+    %deep = call Greater_DoubleDouble(A: %size.Y, B: 350)
+    %fits = call BooleanAND(A: %wide, B: %deep)
+    branch(%fits) [true -> @place, false -> @done]
+@place:
+    %halfY = call Divide_DoubleDouble(A: %size.Y, B: 2)
+    %centerY = call Add_DoubleDouble(A: %min.Y, B: %halfY)
+    %leftChairX = call Subtract_DoubleDouble(A: $CenterX, B: 170)
+    %rightChairX = call Add_DoubleDouble(A: $CenterX, B: 170)
+    call PlaceThemedDiningTable(X: $CenterX, Y: %centerY, Yaw: 0)
+    call PlaceThemedDiningChair(X: %leftChairX, Y: %centerY, Yaw: 0)
+    call PlaceThemedDiningChair(X: %rightChairX, Y: %centerY, Yaw: 180)
+    %normal = call EqualEqual_ByteByte(A: $FurnishingDensity, B: E_ResidentialFurnishingDensity::Normal)
+    branch(%normal) [true -> @extraChairs, false -> @done]
+@extraChairs:
+    %frontChairY = call Subtract_DoubleDouble(A: %centerY, B: 120)
+    %backChairY = call Add_DoubleDouble(A: %centerY, B: 120)
+    call PlaceThemedDiningChair(X: $CenterX, Y: %frontChairY, Yaw: 90)
+    call PlaceThemedDiningChair(X: $CenterX, Y: %backChairY, Yaw: 270)
+    return
+@done:
+    return
+}
+
+entry function FurnishCombinedPublic(struct<ST_HouseRoom> Room, bool IncludeKitchen) {
+    %parts = break<ST_HouseRoom>($Room)
+    %min = call BreakVector(InVec: %parts.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %parts.Size_6_A050281547D25A85B4448B81EF60035D)
+    %endX = call Add_DoubleDouble(A: %min.X, B: %size.X)
+    %leftX = call Add_DoubleDouble(A: %min.X, B: 180)
+    %rightX = call Subtract_DoubleDouble(A: %endX, B: 180)
+    %rightTableX = call Subtract_DoubleDouble(A: %rightX, B: 200)
+    call FurnishCompactLivingAtX(Room: $Room, GroupX: %rightX, TableX: %rightTableX)
+    call FurnishCompactDiningAtX(Room: $Room, CenterX: %leftX)
+    exec -> @kitchenCheck
+@kitchenCheck:
+    branch($IncludeKitchen) [true -> @kitchen, false -> @done]
+@kitchen:
+    call FurnishKitchen(Room: $Room)
+    return
+@done:
+    return
+}
+
+entry function FurnishCompactDiningAtX(struct<ST_HouseRoom> Room, float CenterX) {
+    %parts = break<ST_HouseRoom>($Room)
+    %min = call BreakVector(InVec: %parts.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %parts.Size_6_A050281547D25A85B4448B81EF60035D)
+    %wide = call Greater_DoubleDouble(A: %size.X, B: 420)
+    %deep = call Greater_DoubleDouble(A: %size.Y, B: 320)
+    %fits = call BooleanAND(A: %wide, B: %deep)
+    branch(%fits) [true -> @place, false -> @done]
+@place:
+    %halfY = call Divide_DoubleDouble(A: %size.Y, B: 2)
+    %centerY = call Add_DoubleDouble(A: %min.Y, B: %halfY)
+    %frontChairY = call Subtract_DoubleDouble(A: %centerY, B: 105)
+    %backChairY = call Add_DoubleDouble(A: %centerY, B: 105)
+    call PlaceThemedDiningTable(X: $CenterX, Y: %centerY, Yaw: 0)
+    call PlaceThemedDiningChair(X: $CenterX, Y: %frontChairY, Yaw: 90)
+    call PlaceThemedDiningChair(X: $CenterX, Y: %backChairY, Yaw: 270)
+    return
+@done:
+    return
+}
+
+entry function FurnishKitchen(struct<ST_HouseRoom> Room) {
+    %parts = break<ST_HouseRoom>($Room)
+    %min = call BreakVector(InVec: %parts.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %parts.Size_6_A050281547D25A85B4448B81EF60035D)
+    %wide = call Greater_DoubleDouble(A: %size.X, B: 500)
+    branch(%wide) [true -> @place, false -> @done]
+@place:
+    %halfX = call Divide_DoubleDouble(A: %size.X, B: 2)
+    %centerX = call Add_DoubleDouble(A: %min.X, B: %halfX)
+    %endX = call Add_DoubleDouble(A: %min.X, B: %size.X)
+    %door = call BreakVector(InVec: %parts.DoorCenter_8_16660F964D81C9BEF3895C9A21215F87)
+    %doorAtRight = call Greater_DoubleDouble(A: %door.X, B: %centerX)
+    %leftStorageX = call Add_DoubleDouble(A: %min.X, B: 180)
+    %rightStorageX = call Subtract_DoubleDouble(A: %endX, B: 180)
+    %storageX = select(Index: %doorAtRight, false: %rightStorageX, true: %leftStorageX)
+    %endY = call Add_DoubleDouble(A: %min.Y, B: %size.Y)
+    %rearFacade = call EqualEqual_DoubleDouble(A: %endY, B: $L)
+    branch(%rearFacade) [true -> @frontStorage, false -> @backStorage]
+@frontStorage:
+    %frontY = call Add_DoubleDouble(A: %min.Y, B: 45)
+    call PlaceThemedWardrobe(X: %storageX, Y: %frontY, Yaw: 0)
+    return
+@backStorage:
+    %backY = call Subtract_DoubleDouble(A: %endY, B: 45)
+    call PlaceThemedWardrobe(X: %storageX, Y: %backY, Yaw: 180)
+    return
+@done:
+    return
+}
+
+entry function BuildFurniture() {
+    call SelectFurnitureTheme()
+    branch($FurnitureEnabled) [true -> @enabled, false -> @done]
+@enabled:
+    set OpenPlanFurnishedCount = 0
+    %count = call Array_Length(TargetArray: $Rooms)
+    %last = call Subtract_IntInt(A: %count, B: 1)
+    %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @room, Completed -> @done]
+@room:
+    %record = call Array_Get(TargetArray: $Rooms, Index: %loop.Index)
+    call FurnishRoom(Room: %record.Item)
+    end
+@done:
+    return
+}

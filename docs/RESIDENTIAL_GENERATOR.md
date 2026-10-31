@@ -1,4 +1,4 @@
-# Residential generator — Phase 4
+# Residential generator — Phase 4.1
 
 Phase 4 extends the existing Blueprint-first Phase 3 generator with deterministic room-aware furniture and interior lighting:
 
@@ -97,6 +97,39 @@ The final dirty-package audit found imported materials transiently marked dirty 
 A one-client standalone PIE smoke test started and stopped successfully with no loaded Blueprint errors. The PIE world had one player controller and all four Phase 4 actors. The Living Entrance example retained `LayoutValid = true`, 9 furniture instances, 5 fixture instances, and 5 active generated point lights in PIE. This proves saved generated content loads in the real gameplay world; it is not a visual-quality or interactive-furniture test.
 
 An automated interior screenshot was attempted, but the shared Level Editor viewport could not provide a pixel readback and no controllable app-window surface was available. Phase 4 visual-quality acceptance is therefore not claimed. The imported furniture Blueprints do not support an interactive PIE case, so interactive behaviour is also not claimed.
+
+## Phase 4.1 interior realism pass
+
+Phase 4.1 preserves the Phase 3 plan algorithms and the Phase 4 cleanup/toggle workflow while improving the visible interior layer. The safety checkpoint immediately before Blueprint reinstancing is `Saved/Phase4_1PreReinstanceCheckpoint-20261030-232928/`; it contains the saved generator, test map, hashes, actor manifest, and per-instance recovery dumps for all 15 pre-existing generator actors.
+
+### Materials and furniture themes
+
+- New project-owned materials are `/Game/_Main/Buildings/Materials/Interiors/M_Ashwood_MatteTimber`, `M_Ashwood_WarmCream`, and `M_Ashwood_SoftSage`. They reuse installed textures, set metallic to zero, use restrained specular response and high roughness, and do not modify the imported masters.
+- New actors default to the matte timber floor and warm cream interior input. `InteriorMaterialVariationEnabled` chooses warm cream for the modern theme or soft sage for the classic theme; `WarmNeutralWallMaterial`, `SoftSageWallMaterial`, and `CeilingMaterial` remain editable overrides.
+- `FurnitureTheme` is derived deterministically from `Seed + FurnitureSeedOffset`. A house uses either the existing modern group or the classic group rather than mixing both randomly.
+- Additional catalogue components use `SM_Classic_Leather_Sofa`, `SM_Classic_Leather_Armchair`, `SM_Classic_table`, `SM_Classic_chair`, `SM_Classic_Cupboard`, `SM_Commode`, `SM_Classic_Commode`, `SM_TV`, `SM_Table_Lamp`, and `SM_Picture`. Imported assets remain read-only.
+
+Living groups now use a sofa-to-TV focal axis, a coffee table inside the seating group, a conversational armchair where space permits, and optional side table, lamp, and wall art at Normal density. Dining chairs face inward. Beds retain wall/headboard placement while bedside tables, lamps, pictures, dressers, and large-room wardrobes are placed as related groups. Bathrooms keep the tub and toilet on separate wall zones. Small kitchens are deliberately left open for the future kitchen pack instead of forcing a cupboard and dining set into the entrance route; only sufficiently large rooms receive freestanding storage. Hallways remain empty.
+
+The existing room dimensions were not changed. Focused inspection showed that safely changing bathroom/corridor proportions would require altering the Phase 3 planners, so Phase 4.1 reduces the empty-room impression through composition and material treatment without expanding scope.
+
+### Lighting changes
+
+Generated lights now use 2950 K, no dynamic shadows, 450 cm attenuation in bedrooms/bathrooms and 525 cm in public/kitchen rooms. The default base intensity is 700 and room multipliers produce lower bedroom light, moderate bathroom/public light, and stronger kitchen light. Indirect and volumetric contributions are restrained. `Mesh_light_cylShadeCeiling` is now oriented with its mount at the 320 cm ceiling and its shade hanging below it rather than inverted. The existing eight-light cap and `InteriorLightingEnabled` cleanup behavior are unchanged.
+
+### Phase 4.1 examples and validation
+
+The dedicated examples are at Y=15000 cm and do not replace the Phase 2, Phase 3, or Phase 4 rows:
+
+- X=0: `Phase4_1_ModernLiving_Seed6101` — Living Room Entrance, 10 × 12 m, 5 logical rooms, modern Normal theme.
+- X=2200: `Phase4_1_ClassicFamily_Seed6202` — Family Suburban, 11 × 13 m, 6 logical rooms, classic Normal theme.
+- X=4800: `Phase4_1_OpenPlan_Seed6303` — Open Plan, 15 × 22 m, 5 logical rooms, modern Normal theme.
+
+`Saved/ResidentialGenerator/Validation/phase4_1_phase4_regression_final.json` records passing regression cases for all four layout styles, both densities/toggles, deterministic regeneration, footprint overlap, and 6/6/8/7 capsule-route checks. `Saved/ResidentialGenerator/Validation/phase4_1_examples_final.json` records all three Phase 4.1 examples passing themed-material, style-consistency, furniture-support relationship, warm-light configuration, overlap, circulation, and exact-repeat checks. The reusable Phase 4.1 checker is `Scripts/ResidentialGenerator/validate_phase4_1_editor.py`.
+
+Pixel captures were inspected in `Saved/Screenshots/OpenLevel/`: `Phase4_1_Classic_LivingDining_Final.png`, `Phase4_1_Classic_Bedroom.png`, `Phase4_1_Classic_Bathroom.png`, and `Phase4_1_Classic_WholeHouse_Top.png`. The final living/dining view showed the corrected pendant orientation, inward-facing dining chairs, a sofa/TV axis, and a clear entrance aisle. Bedroom and bathroom views confirmed wall-relative placement and material variation. The temporary roof-hidden whole-house view confirmed clear halls and intentionally reserved kitchen space; roof/ceiling visibility was restored immediately after capture.
+
+Remaining visual limitations are the missing purpose-built kitchen/bathroom categories, rectangular Phase 3 room envelopes, a small decorative catalogue, no rugs/clutter, and daylight that can still produce strong window contrast. Existing pre-Phase-4.1 actors retain their saved per-instance material overrides until a designer changes those overrides; the dedicated Phase 4.1 examples use the new defaults.
 
 ### Missing categories and Phase 4 limitations
 

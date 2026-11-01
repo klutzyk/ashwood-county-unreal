@@ -228,7 +228,7 @@ entry function BuildNewLayoutShell() {
     call BuildPrivateRoomWalls(Room: %item.Item)
     end
 @internal:
-    %isOpen = call EqualEqual_ByteByte(A: $ResolvedLayoutStyle, B: E_ResidentialLayoutStyle::OpenPlan)
+    %isOpen = call EqualEqual_ByteByte(A: $ResolvedLayoutStyle, B: 3)
     branch(%isOpen) [true -> @openInternal, false -> @twoWingInternal]
 @twoWingInternal:
     %boundary = select(cond: $EntranceAtRear, true: $PlanRegionDepth, false: $PlanRegionStart)
@@ -255,7 +255,7 @@ entry function BuildNewLayoutShell() {
 }
 
 entry function BuildShell() {
-    %central = call EqualEqual_ByteByte(A: $ResolvedLayoutStyle, B: E_ResidentialLayoutStyle::CentralHallway)
+    %central = call EqualEqual_ByteByte(A: $ResolvedLayoutStyle, B: 4)
     branch(%central) [true -> @centralBuild, false -> @newBuild]
 @centralBuild:
     call Place(Component: $Corner, X: 0, Y: 0, Z: 20, Yaw: 0, SX: 1, SY: 1, SZ: 1)

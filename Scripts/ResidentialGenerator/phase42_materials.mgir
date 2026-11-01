@@ -1,0 +1,20 @@
+entry material `/Game/_Main/Buildings/Materials/Interiors/M_PH_Residential` {
+    property MaterialDomain: MD_Surface
+    property BlendMode: BLEND_Opaque
+    property ShadingModel: MSM_DefaultLit
+    %scale = call `/Script/Engine.MaterialExpressionScalarParameter`(ParameterName: "TextureSizeCm", DefaultValue: 200.0)
+    %AlbedoTex = call `/Script/Engine.MaterialExpressionTextureObjectParameter`(ParameterName: "Albedo", Texture: "/Game/_Main/PolyHaven/Textures/Wood/wood_floor_2k/wood_floor_diff_2k", SamplerType: "SAMPLERTYPE_Color")
+    %Albedo = function_call `/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedTexture.WorldAlignedTexture`(TextureObject: %AlbedoTex, TextureSize: %scale)
+    %NormalTex = call `/Script/Engine.MaterialExpressionTextureObjectParameter`(ParameterName: "Normal", Texture: "/Game/_Main/PolyHaven/Textures/Wood/wood_floor_2k/wood_floor_nor_dx_2k", SamplerType: "SAMPLERTYPE_Normal")
+    %Normal = function_call `/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedNormal.WorldAlignedNormal`(TextureObject: %NormalTex, TextureSize: %scale)
+    %RoughnessTex = call `/Script/Engine.MaterialExpressionTextureObjectParameter`(ParameterName: "Roughness", Texture: "/Game/_Main/PolyHaven/Textures/Wood/wood_floor_2k/wood_floor_rough_2k", SamplerType: "SAMPLERTYPE_LinearColor")
+    %Roughness = function_call `/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedTexture.WorldAlignedTexture`(TextureObject: %RoughnessTex, TextureSize: %scale)
+    %AOTex = call `/Script/Engine.MaterialExpressionTextureObjectParameter`(ParameterName: "AO", Texture: "/Game/_Main/PolyHaven/Textures/Wood/wood_floor_2k/wood_floor_ao_2k", SamplerType: "SAMPLERTYPE_LinearColor")
+    %AO = function_call `/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedTexture.WorldAlignedTexture`(TextureObject: %AOTex, TextureSize: %scale)
+    %floor = call `/Script/Engine.MaterialExpressionScalarParameter`(ParameterName: "MinimumRoughness", DefaultValue: 0.55)
+    %matte = call `/Script/Engine.MaterialExpressionMax`(A: %Roughness[2], B: %floor)
+    output BaseColor: %Albedo[2]
+    output Normal: %Normal[1]
+    output Roughness: %matte
+    output AmbientOcclusion: %AO[2]
+}

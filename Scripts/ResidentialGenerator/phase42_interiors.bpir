@@ -1,0 +1,140 @@
+entry function ApplyPhase42Materials() {
+    branch($ResidentialPBREnabled) [true -> @pbr, false -> @done]
+@pbr:
+    call SetMaterial(Target: $Floor, ElementIndex: 1, Material: /Game/_Main/Buildings/Materials/Interiors/MI_PH_Timber.MI_PH_Timber)
+    call SetMaterial(Target: $Interior, ElementIndex: 0, Material: $InteriorWallMaterial)
+    call SetMaterial(Target: $Doorway, ElementIndex: 0, Material: $InteriorWallMaterial)
+    call SetMaterial(Target: $Exterior, ElementIndex: 0, Material: $InteriorWallMaterial)
+    call SetMaterial(Target: $Window, ElementIndex: 0, Material: $InteriorWallMaterial)
+    call SetMaterial(Target: $Entrance, ElementIndex: 0, Material: $InteriorWallMaterial)
+    call SetMaterial(Target: $Corner, ElementIndex: 0, Material: $InteriorWallMaterial)
+    %classic = call EqualEqual_IntInt(A: $FurnitureTheme, B: 1)
+    branch(%classic) [true -> @beige, false -> @white]
+@beige:
+    call SetMaterial(Target: $Floor_Wet, ElementIndex: 1, Material: /Game/_Main/Buildings/Materials/Interiors/MI_PH_BeigeTile.MI_PH_BeigeTile)
+    exec -> @condition
+@white:
+    call SetMaterial(Target: $Floor_Wet, ElementIndex: 1, Material: /Game/_Main/Buildings/Materials/Interiors/MI_PH_WhiteTile.MI_PH_WhiteTile)
+    exec -> @condition
+@condition:
+    branch($NeglectedInterior) [true -> @old, false -> @done]
+@old:
+    call SetMaterial(Target: $Floor, ElementIndex: 1, Material: /Game/_Main/Buildings/Materials/Interiors/MI_PH_OldTimber.MI_PH_OldTimber)
+    call SetMaterial(Target: $Interior, ElementIndex: 0, Material: /Game/_Main/Buildings/Materials/Interiors/MI_PH_Plaster.MI_PH_Plaster)
+    call SetMaterial(Target: $Doorway, ElementIndex: 0, Material: /Game/_Main/Buildings/Materials/Interiors/MI_PH_Plaster.MI_PH_Plaster)
+    return
+@done:
+    return
+}
+
+entry function BuildRoomFloors() {
+    call TransactObject(Object: $Floor_Wet)
+    call ClearInstances(Target: $Floor_Wet)
+    %count = call Array_Length(TargetArray: $Rooms)
+    %last = call Subtract_IntInt(A: %count, B: 1)
+    %loop = macro ForLoop(FirstIndex: 0, LastIndex: %last) [LoopBody -> @room, Completed -> @done]
+@room:
+    %record = call Array_Get(TargetArray: $Rooms, Index: %loop.Index)
+    %parts = break<ST_HouseRoom>(%record.Item)
+    %min = call BreakVector(InVec: %parts.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %parts.Size_6_A050281547D25A85B4448B81EF60035D)
+    %sx = call Divide_DoubleDouble(A: %size.X, B: 100)
+    %sy = call Divide_DoubleDouble(A: %size.Y, B: 100)
+    %bath = call EqualEqual_NameName(A: %parts.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Bathroom")
+    %kitchen = call EqualEqual_NameName(A: %parts.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Kitchen")
+    %wet = call BooleanOR(A: %bath, B: %kitchen)
+    %useWet = call BooleanAND(A: %wet, B: $ResidentialPBREnabled)
+    %component = select(Index: %useWet, false: $Floor, true: $Floor_Wet)
+    call Place(Component: %component, X: %min.X, Y: %min.Y, Z: 0, Yaw: 0, SX: %sx, SY: %sy, SZ: 1)
+    call Place(Component: $Ceiling, X: %min.X, Y: %min.Y, Z: 300, Yaw: 0, SX: %sx, SY: %sy, SZ: 1)
+    end
+@done:
+    return
+}
+
+entry function KitchenInstancesInBox(object<InstancedStaticMeshComponent> Component, vector Center, vector Extent) -> bool {
+    %min = call Subtract_VectorVector(A: $Center, B: $Extent)
+    %max = call Add_VectorVector(A: $Center, B: $Extent)
+    %box = call MakeBox(Min: %min, Max: %max)
+    %hits = call GetInstancesOverlappingBox(Target: $Component, Box: %box, bBoxInWorldSpace: false)
+    %count = call Array_Length(TargetArray: %hits)
+    %any = call Greater_IntInt(A: %count, B: 0)
+    return %any
+}
+
+entry function PlaceKitchenModule(object<InstancedStaticMeshComponent> Component, float X, float Y, float Bottom, float Yaw, float Along, float DepthScale, float Across) {
+    %bounds = call GetLocalBounds(Target: $Component)
+    %min = call BreakVector(InVec: %bounds.Min)
+    %max = call BreakVector(InVec: %bounds.Max)
+    %sumX = call Add_DoubleDouble(A: %min.X, B: %max.X)
+    %sumY = call Add_DoubleDouble(A: %min.Y, B: %max.Y)
+    %cx = call Divide_DoubleDouble(A: %sumX, B: 2)
+    %cy = call Divide_DoubleDouble(A: %sumY, B: -2)
+    %scaledY = call Multiply_DoubleDouble(A: %cy, B: $DepthScale)
+    %across = call Add_DoubleDouble(A: %scaledY, B: $Across)
+    %along = call Subtract_DoubleDouble(A: $Along, B: %cx)
+    %z = call Subtract_DoubleDouble(A: $Bottom, B: %min.Z)
+    call PlaceOffset(Component: $Component, X: $X, Y: $Y, Z: %z, Yaw: $Yaw, Along: %along, Across: %across, Turn: 0, SX: 1, SY: $DepthScale, SZ: 1)
+    return
+}
+
+entry function BuildKitchenRun(float X, float Y, float Yaw) {
+    call PlaceKitchenModule(Component: $Kitchen_PlinthLeft, X: $X, Y: $Y, Bottom: 20, Yaw: $Yaw, Along: -84.2422, DepthScale: 1)
+    call PlaceKitchenModule(Component: $Kitchen_PlinthStandard, X: $X, Y: $Y, Bottom: 20, Yaw: $Yaw, Along: 69.2668, DepthScale: 1)
+    call PlaceKitchenModule(Component: $Kitchen_BaseLeft, X: $X, Y: $Y, Bottom: 34.5848, Yaw: $Yaw, Along: -84.2422, DepthScale: 1)
+    call PlaceKitchenModule(Component: $Kitchen_BaseStandard, X: $X, Y: $Y, Bottom: 34.5848, Yaw: $Yaw, Along: 69.2668, DepthScale: 1)
+    call PlaceKitchenModule(Component: $Kitchen_Counter, X: $X, Y: $Y, Bottom: 109.6116, Yaw: $Yaw, Along: 0, DepthScale: 1)
+    branch($KitchenUpperCabinetsEnabled) [true -> @upperCheck, false -> @done]
+@upperCheck:
+    %center = call MakeVector(X: $X, Y: $Y, Z: 205)
+    %extent = call MakeVector(X: 170, Y: 75, Z: 50)
+    %window = call KitchenInstancesInBox(Component: $Window, Center: %center, Extent: %extent)
+    branch(%window) [true -> @done, false -> @upper]
+@upper:
+    call PlaceKitchenModule(Component: $Kitchen_Upper, X: $X, Y: $Y, Bottom: 165, Yaw: $Yaw, Along: 0, DepthScale: 0.55, Across: -12.2)
+    return
+@done:
+    return
+}
+
+entry function FurnishKitchen(struct<ST_HouseRoom> Room) {
+    branch($KitchenEnabled) [true -> @check, false -> @done]
+@check:
+    %parts = break<ST_HouseRoom>($Room)
+    %min = call BreakVector(InVec: %parts.Min_4_CA1734C84A7EB842FDFAA89748F89847)
+    %size = call BreakVector(InVec: %parts.Size_6_A050281547D25A85B4448B81EF60035D)
+    %wide = call GreaterEqual_DoubleDouble(A: %size.X, B: 367.02)
+    %deep = call GreaterEqual_DoubleDouble(A: %size.Y, B: 260)
+    %fits = call BooleanAND(A: %wide, B: %deep)
+    branch(%fits) [true -> @candidate, false -> @done]
+@candidate:
+    %halfX = call Divide_DoubleDouble(A: %size.X, B: 2)
+    %cx = call Add_DoubleDouble(A: %min.X, B: %halfX)
+    %front = call Add_DoubleDouble(A: %min.Y, B: 45.5)
+    %endY = call Add_DoubleDouble(A: %min.Y, B: %size.Y)
+    %back = call Subtract_DoubleDouble(A: %endY, B: 45.5)
+    %s = call Add_IntInt(A: $Seed, B: $KitchenSeedOffset)
+    %mod = call Percent_IntInt(A: %s, B: 2)
+    %seedRear = call EqualEqual_IntInt(A: %mod, B: 0)
+    %combined = call NotEqual_NameName(A: %parts.RoomType_2_87423695486C3E53B2EAF39CEB5A1A7B, B: "Kitchen")
+    %rearFirst = call BooleanOR(A: %seedRear, B: %combined)
+    %y = select(Index: %rearFirst, false: %front, true: %back)
+    %yaw = select(Index: %rearFirst, false: 0.0, true: 180.0)
+    %clear = call KitchenRunClear(X: %cx, Y: %y)
+    branch(%clear) [true -> @first, false -> @fallback]
+@first:
+    call BuildKitchenRun(X: %cx, Y: %y, Yaw: %yaw)
+    return
+@fallback:
+    branch(%combined) [true -> @done, false -> @other]
+@other:
+    %otherY = select(Index: %rearFirst, false: %back, true: %front)
+    %otherYaw = select(Index: %rearFirst, false: 180.0, true: 0.0)
+    %otherClear = call KitchenRunClear(X: %cx, Y: %otherY)
+    branch(%otherClear) [true -> @second, false -> @done]
+@second:
+    call BuildKitchenRun(X: %cx, Y: %otherY, Yaw: %otherYaw)
+    return
+@done:
+    return
+}

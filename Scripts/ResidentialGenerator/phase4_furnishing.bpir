@@ -1,5 +1,5 @@
 entry function FurnishBedroomExtras(struct<ST_HouseRoom> Room, bool BedAtBack, bool DoorAtRight) {
-    %normal = call EqualEqual_ByteByte(A: $FurnishingDensity, B: E_ResidentialFurnishingDensity::Normal)
+    %normal = call EqualEqual_ByteByte(A: $FurnishingDensity, B: 1)
     branch(%normal) [true -> @normalDensity, false -> @done]
 @normalDensity:
     %parts = break<ST_HouseRoom>($Room)
@@ -125,7 +125,7 @@ entry function FurnishLivingAtX(struct<ST_HouseRoom> Room, float GroupX) {
     %chairBackY = call Subtract_DoubleDouble(A: %endY, B: 340)
     call Place(Component: $Furniture_Sofa, X: $GroupX, Y: %sofaBackY, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
     call Place(Component: $Furniture_CoffeeTable, X: $GroupX, Y: %tableBackY, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
-    %normalBack = call EqualEqual_ByteByte(A: $FurnishingDensity, B: E_ResidentialFurnishingDensity::Normal)
+    %normalBack = call EqualEqual_ByteByte(A: $FurnishingDensity, B: 1)
     branch(%normalBack) [true -> @backChair, false -> @done]
 @backChair:
     call Place(Component: $Furniture_Armchair, X: $GroupX, Y: %chairBackY, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
@@ -136,7 +136,7 @@ entry function FurnishLivingAtX(struct<ST_HouseRoom> Room, float GroupX) {
     %chairFrontY = call Add_DoubleDouble(A: %min.Y, B: 340)
     call Place(Component: $Furniture_Sofa, X: $GroupX, Y: %sofaFrontY, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
     call Place(Component: $Furniture_CoffeeTable, X: $GroupX, Y: %tableFrontY, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
-    %normalFront = call EqualEqual_ByteByte(A: $FurnishingDensity, B: E_ResidentialFurnishingDensity::Normal)
+    %normalFront = call EqualEqual_ByteByte(A: $FurnishingDensity, B: 1)
     branch(%normalFront) [true -> @frontChair, false -> @done]
 @frontChair:
     call Place(Component: $Furniture_Armchair, X: $GroupX, Y: %chairFrontY, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
@@ -207,7 +207,7 @@ entry function FurnishDiningAtX(struct<ST_HouseRoom> Room, float CenterX) {
     call Place(Component: $Furniture_DiningTable, X: $CenterX, Y: %centerY, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
     call Place(Component: $Furniture_DiningChair, X: %leftChairX, Y: %centerY, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
     call Place(Component: $Furniture_DiningChair, X: %rightChairX, Y: %centerY, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
-    %normal = call EqualEqual_ByteByte(A: $FurnishingDensity, B: E_ResidentialFurnishingDensity::Normal)
+    %normal = call EqualEqual_ByteByte(A: $FurnishingDensity, B: 1)
     branch(%normal) [true -> @extraChairs, false -> @done]
 @extraChairs:
     %frontChairY = call Subtract_DoubleDouble(A: %centerY, B: 105)

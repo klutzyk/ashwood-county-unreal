@@ -1,4 +1,4 @@
-# Residential generator — Phase 4.1
+# Residential generator — Phase 4.2
 
 Phase 4 extends the existing Blueprint-first Phase 3 generator with deterministic room-aware furniture and interior lighting:
 
@@ -130,6 +130,43 @@ The dedicated examples are at Y=15000 cm and do not replace the Phase 2, Phase 3
 Pixel captures were inspected in `Saved/Screenshots/OpenLevel/`: `Phase4_1_Classic_LivingDining_Final.png`, `Phase4_1_Classic_Bedroom.png`, `Phase4_1_Classic_Bathroom.png`, and `Phase4_1_Classic_WholeHouse_Top.png`. The final living/dining view showed the corrected pendant orientation, inward-facing dining chairs, a sofa/TV axis, and a clear entrance aisle. Bedroom and bathroom views confirmed wall-relative placement and material variation. The temporary roof-hidden whole-house view confirmed clear halls and intentionally reserved kitchen space; roof/ceiling visibility was restored immediately after capture.
 
 Remaining visual limitations are the missing purpose-built kitchen/bathroom categories, rectangular Phase 3 room envelopes, a small decorative catalogue, no rugs/clutter, and daylight that can still produce strong window contrast. Existing pre-Phase-4.1 actors retain their saved per-instance material overrides until a designer changes those overrides; the dedicated Phase 4.1 examples use the new defaults.
+
+## Phase 4.2 kitchen and PBR interior pass
+
+Phase 4.2 keeps the existing room planners and the manual **RegenerateBuilding** workflow. It adds a measured, deterministic straight kitchen run for eligible `Kitchen` and combined/open-plan room rectangles. Placement uses the imported mesh bounds, checks the available room width/depth, tests doors, entrances, windows, existing furniture and prior kitchen instances, and either uses the opposite backed wall or skips the run. Small dedicated kitchens prioritise cabinetry over a dining table; larger kitchens retain dining when it fits. Combined/open-plan runs use the exterior-backed wall and upper cabinets are omitted where a window overlaps their mounting volume.
+
+The current run contains individually instanced modules rather than a combined assembly:
+
+- `/Game/Third-Party_Assets/Kitchen/SM_Kitchen_Bottom_CabinetsStandard_001`
+- `/Game/Third-Party_Assets/Kitchen/SM_Kitchen_Bottom_CabinetsLeft_001`
+- `/Game/Third-Party_Assets/Kitchen/SM_Kitchen_Floor_Frame_001`
+- `/Game/Third-Party_Assets/Kitchen/SM_Kitchen_Floor_FrameRIght_001`
+- `/Game/Third-Party_Assets/Kitchen/SM_Kitchen_Counter_Top_001`
+- `/Game/Third-Party_Assets/Kitchen/SM_Kitchen_Upper_StandardCabinet_001`
+
+`SM_Kitchen_Sink_With_Dispenser_001` is assigned to the reserved `Kitchen_Sink` ISM component but is not placed. Asset-preview and extracted-section inspection showed a capped solid box rather than a usable basin, so Phase 4.2 leaves the countertop cut-out empty instead of presenting invalid geometry as a sink. No stove, oven, refrigerator, range hood or independent appliance mesh was found in the audited kit. Fridge framing and other cabinet pieces remain available for a later layout expansion after matching appliances exist.
+
+Designer controls are `KitchenEnabled`, `KitchenUpperCabinetsEnabled`, `KitchenSeedOffset` (default `20000`), `ResidentialPBREnabled`, and `NeglectedInterior`. `KitchenAppliancesEnabled` was not added because no genuine appliance set is available. The generator currently supports a compact/standard straight run; an L-shaped run and appliance alcove are not implemented.
+
+### Poly Haven materials
+
+`/Game/_Main/Buildings/Materials/Interiors/M_PH_Residential` is the shared opaque/default-lit master. It uses world-aligned colour and normal sampling, a centimetre texture-size parameter, metallic zero, AO, and a minimum roughness clamp. Instanced-static-mesh usage is configured on the material asset after MGIR compilation; it is not an MGIR property. Seven material instances were created:
+
+- `MI_PH_Timber`, `MI_PH_RawTimber`, `MI_PH_OldTimber`
+- `MI_PH_BeigeTile`, `MI_PH_WhiteTile`
+- `MI_PH_Plaster`, `MI_PH_Carpet`
+
+Normal textures use the DirectX normal-map setting. Roughness and AO textures have sRGB disabled. Phase 4.2 uses timber for dry rooms, deterministic beige/white tile for kitchens and bathrooms, and old timber plus painted plaster only when `NeglectedInterior` is enabled. Raw timber and carpet are prepared shared instances but are not automatically assigned yet. Room rectangles receive one continuous floor instance, preventing random material changes inside a room.
+
+### Furnishing, lighting, and examples
+
+Living-room detail placement now suppresses armchairs that would exceed a narrow room or obstruct the entrance, and side tables use more conservative spacing. The family combined-room dining centre was shifted away from the entrance after capsule traces identified `Furniture_DiningTableClassic` as the blocker. Generated light colour temperature is 4200 K and effective intensity is 75% of the designer input, reducing the Phase 4.1 orange cast while preserving the existing room multipliers and eight-light cap.
+
+Four Phase 4.2 examples are on the Y=19500 cm row without replacing the older examples: `Phase4_2_Standard_Seed7101`, `Phase4_2_Compact_Seed7202`, `Phase4_2_OpenPlan_Seed7303`, and `Phase4_2_Neglected_Seed7404`. Rendered close-ups are under `Saved/Screenshots/OpenLevel/Phase42_*_Final.png`.
+
+After the final dining/light adjustment and the enum-byte repair, all four examples passed room-boundary, furniture-overlap, floor-coverage, support, capsule-route and exact-repeat checks in `Saved/ResidentialGenerator/Validation/phase42_examples.json`. The Blueprint compiled `UpToDate` with zero warnings/errors and its 57-node SCS rebuilt all 22 placed generators. Seeds 7203, 7204 and 7205 also passed six entrance/connectivity routes each in `phase42_extra_seeds_final.json`. The repair changed six `Equal (Byte)` defaults from enum display-name strings to their valid underlying bytes (`OpenPlan=3`, `CentralHallway=4`, `Normal=1`); the connected enum-variable pins and graph wiring were unchanged. A PIE gameplay traversal was not run during this focused repair.
+
+Phase 4.2 source recipes and checks are in `Scripts/ResidentialGenerator/phase42_interiors.bpir`, `phase42_materials.mgir`, `phase42_material_recipes.json`, `assemble_phase42_graphs.py`, and `validate_phase42_editor.py`.
 
 ### Missing categories and Phase 4 limitations
 

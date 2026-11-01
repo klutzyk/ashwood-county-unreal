@@ -1,0 +1,72 @@
+[
+  {
+    "name": "MI_PH_Timber",
+    "textures": {
+      "Albedo": "/Game/_Main/PolyHaven/Textures/Wood/wood_floor_2k/wood_floor_diff_2k",
+      "Normal": "/Game/_Main/PolyHaven/Textures/Wood/wood_floor_2k/wood_floor_nor_dx_2k",
+      "Roughness": "/Game/_Main/PolyHaven/Textures/Wood/wood_floor_2k/wood_floor_rough_2k",
+      "AO": "/Game/_Main/PolyHaven/Textures/Wood/wood_floor_2k/wood_floor_ao_2k"
+    },
+    "size": 200
+  },
+  {
+    "name": "MI_PH_RawTimber",
+    "textures": {
+      "Albedo": "/Game/_Main/PolyHaven/Textures/Wood/dirty_wooden_floor_01_2k/raw_wooden_floor_01_diff_2k",
+      "Normal": "/Game/_Main/PolyHaven/Textures/Wood/dirty_wooden_floor_01_2k/raw_wooden_floor_01_nor_dx_2k",
+      "Roughness": "/Game/_Main/PolyHaven/Textures/Wood/dirty_wooden_floor_01_2k/raw_wooden_floor_01_rough_2k",
+      "AO": "/Game/_Main/PolyHaven/Textures/Wood/dirty_wooden_floor_01_2k/raw_wooden_floor_01_ao_2k"
+    },
+    "size": 200
+  },
+  {
+    "name": "MI_PH_BeigeTile",
+    "textures": {
+      "Albedo": "/Game/_Main/PolyHaven/Textures/Tiles/floor_tiles_02_2k_beige/floor_tiles_02_diff_2k",
+      "Normal": "/Game/_Main/PolyHaven/Textures/Tiles/floor_tiles_02_2k_beige/floor_tiles_02_nor_dx_2k",
+      "Roughness": "/Game/_Main/PolyHaven/Textures/Tiles/floor_tiles_02_2k_beige/floor_tiles_02_rough_2k",
+      "AO": "/Game/_Main/PolyHaven/Textures/Tiles/floor_tiles_02_2k_beige/floor_tiles_02_ao_2k"
+    },
+    "size": 200
+  },
+  {
+    "name": "MI_PH_WhiteTile",
+    "textures": {
+      "Albedo": "/Game/_Main/PolyHaven/Textures/Tiles/tiled_floor_001_2k_whitish/tiled_floor_001_diffuse_2k",
+      "Normal": "/Game/_Main/PolyHaven/Textures/Tiles/tiled_floor_001_2k_whitish/tiled_floor_001_nor_dx_2k",
+      "Roughness": "/Game/_Main/PolyHaven/Textures/Tiles/tiled_floor_001_2k_whitish/tiled_floor_001_rough_2k",
+      "AO": "/Game/_Main/PolyHaven/Textures/Tiles/tiled_floor_001_2k_whitish/tiled_floor_001_ao_2k"
+    },
+    "size": 200
+  },
+  {
+    "name": "MI_PH_Plaster",
+    "textures": {
+      "Albedo": "/Game/_Main/PolyHaven/Textures/Walls/painted_plaster_wall_2k/painted_plaster_wall_diff_2k",
+      "Normal": "/Game/_Main/PolyHaven/Textures/Walls/painted_plaster_wall_2k/painted_plaster_wall_nor_dx_2k",
+      "Roughness": "/Game/_Main/PolyHaven/Textures/Walls/painted_plaster_wall_2k/painted_plaster_wall_rough_2k",
+      "AO": "/Game/_Main/PolyHaven/Textures/Walls/painted_plaster_wall_2k/painted_plaster_wall_ao_2k"
+    },
+    "size": 200
+  },
+  {
+    "name": "MI_PH_OldTimber",
+    "textures": {
+      "Albedo": "/Game/_Main/PolyHaven/Textures/Wood/old_wooden_floor_03_2k/old_wooden_floor_03_diff_2k",
+      "Normal": "/Game/_Main/PolyHaven/Textures/Wood/old_wooden_floor_03_2k/old_wooden_floor_03_nor_dx_2k",
+      "Roughness": "/Game/_Main/PolyHaven/Textures/Wood/old_wooden_floor_03_2k/old_wooden_floor_03_rough_2k",
+      "AO": "/Game/_Main/PolyHaven/Textures/Wood/old_wooden_floor_03_2k/old_wooden_floor_03_ao_2k"
+    },
+    "size": 200
+  },
+  {
+    "name": "MI_PH_Carpet",
+    "textures": {
+      "Albedo": "/Game/_Main/PolyHaven/Textures/Carpet/dirty_carpet_2k/dirty_carpet_diff_2k",
+      "Normal": "/Game/_Main/PolyHaven/Textures/Carpet/dirty_carpet_2k/dirty_carpet_nor_dx_2k",
+      "Roughness": "/Game/_Main/PolyHaven/Textures/Carpet/dirty_carpet_2k/dirty_carpet_rough_2k",
+      "AO": "/Game/_Main/PolyHaven/Textures/Carpet/dirty_carpet_2k/dirty_carpet_ao_2k"
+    },
+    "size": 200
+  }
+]

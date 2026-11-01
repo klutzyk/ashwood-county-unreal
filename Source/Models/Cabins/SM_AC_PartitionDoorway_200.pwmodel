@@ -1,0 +1,36 @@
+pwmodel 0
+
+materials {
+    Timber = "/Game/Fab/Modular_Buildings/Modular_Rural_Cabin/Materials/Instances/Wood_Planks_01"
+}
+
+# 100 cm clear opening, 220 cm clear head height. The side pieces and lintel
+# form one reusable open-doorway module without a door leaf.
+part left_jamb {
+    box size=(50, 12, 280) at=(-75, 0, 140) material="Timber"
+    uv channel=0 mode=box scale=(0.01, 0.01)
+    uv channel=1 mode=xatlas
+}
+
+part right_jamb {
+    box size=(50, 12, 280) at=(75, 0, 140) material="Timber"
+    uv channel=0 mode=box scale=(0.01, 0.01)
+    uv channel=1 mode=xatlas
+}
+
+part lintel {
+    box size=(100, 12, 60) at=(0, 0, 250) material="Timber"
+    uv channel=0 mode=box scale=(0.01, 0.01)
+    uv channel=1 mode=xatlas
+}
+
+uv_layout channel=0 texture_resolution=512
+uv_layout channel=1 texture_resolution=128
+lightmap channel=1 resolution=128
+
+collision {
+    complexity = simple_and_complex
+    box size=(50, 12, 280) at=(-75, 0, 140)
+    box size=(50, 12, 280) at=(75, 0, 140)
+    box size=(100, 12, 60) at=(0, 0, 250)
+}

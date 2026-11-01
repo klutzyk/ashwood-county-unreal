@@ -1,0 +1,19 @@
+pwmodel 0
+
+materials {
+    Timber = "/Game/Fab/Modular_Buildings/Modular_Rural_Cabin/Materials/Instances/Wood_Planks_01"
+}
+
+part wall {
+    box size=(100, 12, 280) at=(0, 0, 140) material="Timber"
+    uv channel=0 mode=box scale=(0.01, 0.01)
+    uv channel=1 mode=xatlas
+}
+
+uv_layout channel=1 texture_resolution=128
+lightmap channel=1 resolution=128
+
+collision {
+    complexity = simple_and_complex
+    box size=(100, 12, 280) at=(0, 0, 140)
+}

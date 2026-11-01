@@ -368,6 +368,18 @@ The current slice intentionally has no inventory, weapon hierarchy, ammunition, 
 4. Override `Zombie Died` for a death montage, dissolve, or non-networked cosmetic ragdoll. Native code disables behavior and later cleans up using **Corpse Cleanup Delay**.
 5. Animation-notify-driven authoritative timing is an extension point via `Commit Attack Impact`, but the current automatic windup remains active; switching timing modes is not yet exposed without a small C++ change.
 
+## Modular rural cabin generator (Phase 3A, 2026-11-02)
+
+`/Game/_Main/Buildings/Cabins/Procedural/BP_ModularCabinGenerator` remains a designer-editable Blueprint Actor. It owns the generated shell, roof, porch, partition HISM components, and compact room-planning metadata; it does not regenerate from Construction Script or Tick.
+
+- **RegenerateCabin** (Public, Call in Editor): clears only generator-owned instances, seeds a deterministic random stream, resolves the entrance rotation, plans rooms, and places the selected structural modules. Save the level after calling to persist generated instances.
+- **LayoutVariant**: `0` Trapper (4×4 m), `1` Long (4×8 m), `2` Square (8×8 m), or `3` Large (8×12 m). Values `0` and `1` retain the Phase 2.1 module arrangements.
+- **EntranceOrientation**: `0` North, `1` East, `2` South, or `3` West. The generator applies the orientation to its owned module root so planning data remains actor-local.
+- **Seed** and **WindowStyle** control deterministic facade selection. `WindowStyle = -1` selects from the seeded stream; explicit supported values override that choice.
+- **GeneratedRooms** (public read-only array of `ST_ACCabinRoom`): actor-local room records containing `RoomType`, `BoundsMin`, `BoundsMax`, and `DoorwayAnchor`. The 8×8 plan emits LivingKitchen, Bedroom, and BathroomUtility. The 8×12 plan emits Living, KitchenDining, Bedroom1, Bedroom2, and BathroomUtility.
+- **GeneratedModuleCount**, **LastWindowSelection**, and **ValidationMessage** are read-back diagnostics for editor validation and deterministic-repeat checks.
+- Internal placement helpers separate planning from mesh placement and use reusable project-owned partition meshes under `/Game/_Main/Buildings/Cabins/InteriorKit/`. Interactive doors, furnishings, loot, and replication are intentionally absent in Phase 3A.
+
 ## Procedural residential generator (Phase 4.2, 2026-11-01)
 
 `/Game/_Main/Buildings/Procedural/BP_ResidentialGenerator` remains an editable Blueprint Actor, not a native replacement. `ST_HouseRoom` is unchanged. Phase 4 preserves all Phase 3 planning, facade, finish, porch, and Call in Editor behavior while adding deterministic room-aware furniture and bounded interior lighting.

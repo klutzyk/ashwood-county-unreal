@@ -1,0 +1,296 @@
+entry function PlaceCabinModule(object<InstancedStaticMeshComponent> Component, float X, float Y, float Z, float Yaw, float SX, float SY, float SZ) {
+    %location = call MakeVector(X: $X, Y: $Y, Z: $Z)
+    %rotation = call MakeRotator(Roll: 0.0, Pitch: 0.0, Yaw: $Yaw)
+    %scale = call MakeVector(X: $SX, Y: $SY, Z: $SZ)
+    %transform = call MakeTransform(Location: %location, Rotation: %rotation, Scale: %scale)
+    call AddInstance(Target: $Component, InstanceTransform: %transform, bWorldSpace: false)
+}
+
+entry function AddCabinRoom(string Kind, float MinX, float MinY, float MaxX, float MaxY, float DoorX, float DoorY) {
+    %min = call MakeVector(X: $MinX, Y: $MinY, Z: 0)
+    %max = call MakeVector(X: $MaxX, Y: $MaxY, Z: 280)
+    %door = call MakeVector(X: $DoorX, Y: $DoorY, Z: 0)
+    %room = make<ST_ACCabinRoom>(RoomType_2_7308358E443836EBB5F4ECA93B132204: $Kind, BoundsMin_4_7A2F6EF64A7318F1B45F30A793FADD54: %min, BoundsMax_6_50B94C3547C460B61DE033827624934A: %max, DoorwayAnchor_8_219CF2DB409964A5C66B4091E7B0C0D5: %door)
+    call Array_Add(TargetArray: $GeneratedRooms, NewItem: %room)
+}
+
+entry function ClearCabinModules() {
+    call ClearInstances(Target: $FloorISM)
+    call ClearInstances(Target: $FoundationISM)
+    call ClearInstances(Target: $WallSolidISM)
+    call ClearInstances(Target: $WallLongISM)
+    call ClearInstances(Target: $DoorWallISM)
+    call ClearInstances(Target: $WindowWallISM)
+    call ClearInstances(Target: $WindowDoubleWallISM)
+    call ClearInstances(Target: $GableISM)
+    call ClearInstances(Target: $GableDoorISM)
+    call ClearInstances(Target: $GableWindowISM)
+    call ClearInstances(Target: $GableWindowDoubleISM)
+    call ClearInstances(Target: $PillarISM)
+    call ClearInstances(Target: $RoofISM)
+    call ClearInstances(Target: $RoofBothISM)
+    call ClearInstances(Target: $RoofEndLeftISM)
+    call ClearInstances(Target: $RoofEndRightISM)
+    call ClearInstances(Target: $PorchRoofISM)
+    call ClearInstances(Target: $PartitionWall200ISM)
+    call ClearInstances(Target: $PartitionWall100ISM)
+    call ClearInstances(Target: $PartitionDoorwayISM)
+    call ClearInstances(Target: $PartitionTrimISM)
+    call Array_Clear(TargetArray: $GeneratedRooms)
+}
+
+entry function PlaceSelectedWindow(float X, float Y, float Yaw) {
+    %useDouble = call EqualEqual_IntInt(A: $LastWindowSelection, B: 1)
+    branch(%useDouble) [true -> @double, false -> @single]
+@double:
+    call PlaceCabinModule(Component: $WindowDoubleWallISM, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+    return
+@single:
+    call PlaceCabinModule(Component: $WindowWallISM, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: 1, SZ: 1)
+}
+
+entry function PlaceSelectedGableWindow(float X, float Y, float Yaw, float WidthScale) {
+    %useDouble = call EqualEqual_IntInt(A: $LastWindowSelection, B: 1)
+    branch(%useDouble) [true -> @double, false -> @single]
+@double:
+    call PlaceCabinModule(Component: $GableWindowDoubleISM, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: $WidthScale, SZ: 1)
+    return
+@single:
+    call PlaceCabinModule(Component: $GableWindowISM, X: $X, Y: $Y, Z: 0, Yaw: $Yaw, SX: 1, SY: $WidthScale, SZ: 1)
+}
+
+entry function GenerateLegacyCabin() {
+    %layout = switch_int($LayoutVariant) [0 -> @trapper, 1 -> @long, default -> @done]
+@trapper:
+    call PlaceCabinModule(Component: $FloorISM, X: 0, Y: 0, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: 0, Y: -400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -200, Y: 0, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 200, Y: 0, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 0, Y: -200, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 0, Y: 200, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -200, Y: -400, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 200, Y: -400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 0, Y: -600, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $DoorWallISM, X: 0, Y: -200, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $GableISM, X: -200, Y: 0, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $GableISM, X: 200, Y: 0, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: -200, Y: -200, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: -200, Y: 200, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 200, Y: -200, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 200, Y: 200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceSelectedWindow(X: 0, Y: 200, Yaw: 90)
+    call PlaceCabinModule(Component: $RoofBothISM, X: 0, Y: 0, Z: 310, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PorchRoofISM, X: 0, Y: -200, Z: 265, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    set GeneratedModuleCount = 19
+    return
+@long:
+    call PlaceCabinModule(Component: $FloorISM, X: 0, Y: -200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: 0, Y: 200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: 0, Y: -600, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -200, Y: -200, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -200, Y: 200, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 200, Y: -200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 200, Y: 200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 0, Y: -400, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 0, Y: 400, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -200, Y: -600, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 200, Y: -600, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 0, Y: -800, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $WallLongISM, X: -200, Y: 0, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $WallLongISM, X: 200, Y: 0, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $GableDoorISM, X: 0, Y: -400, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceSelectedGableWindow(X: 0, Y: 400, Yaw: 90, WidthScale: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: -200, Y: -400, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 200, Y: -400, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: -200, Y: 400, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 200, Y: 400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $RoofEndLeftISM, X: 0, Y: -200, Z: 310, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $RoofEndRightISM, X: 0, Y: 200, Z: 310, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PorchRoofISM, X: 0, Y: -400, Z: 265, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    set GeneratedModuleCount = 23
+@done:
+}
+
+entry function GenerateSquareCabin() {
+    call PlaceCabinModule(Component: $FloorISM, X: -200, Y: -200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: 200, Y: -200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: -200, Y: 200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: 200, Y: 200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: 0, Y: -600, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -400, Y: -200, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -400, Y: 200, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 400, Y: -200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 400, Y: 200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -200, Y: -400, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 200, Y: -400, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -200, Y: 400, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 200, Y: 400, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -200, Y: -600, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 200, Y: -600, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 0, Y: -800, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $GableDoorISM, X: 0, Y: -400, Z: 0, Yaw: 270, SX: 1, SY: 2, SZ: 1)
+    call PlaceSelectedGableWindow(X: 0, Y: 400, Yaw: 90, WidthScale: 2)
+    call PlaceSelectedWindow(X: -400, Y: -200, Yaw: 180)
+    call PlaceCabinModule(Component: $WallSolidISM, X: -400, Y: 200, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $WallSolidISM, X: 400, Y: -200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceSelectedWindow(X: 400, Y: 200, Yaw: 0)
+    call PlaceCabinModule(Component: $PillarISM, X: -400, Y: -400, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 400, Y: -400, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: -400, Y: 400, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 400, Y: 400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 0, Y: 400, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: -400, Y: 0, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 400, Y: 0, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $RoofEndLeftISM, X: 0, Y: -200, Z: 310, Yaw: 90, SX: 1, SY: 2, SZ: 1)
+    call PlaceCabinModule(Component: $RoofEndRightISM, X: 0, Y: 200, Z: 310, Yaw: 90, SX: 1, SY: 2, SZ: 1)
+    call PlaceCabinModule(Component: $PorchRoofISM, X: 0, Y: -400, Z: 265, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionDoorwayISM, X: -300, Y: 100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall200ISM, X: -100, Y: 100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionDoorwayISM, X: 100, Y: 100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall200ISM, X: 300, Y: 100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall200ISM, X: 0, Y: 200, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall100ISM, X: 0, Y: 350, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionTrimISM, X: 0, Y: 100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionTrimISM, X: 0, Y: 400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    set GeneratedModuleCount = 42
+}
+
+entry function GenerateLargeCabin() {
+    call PlaceCabinModule(Component: $FloorISM, X: -200, Y: -400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: 200, Y: -400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: -200, Y: 0, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: 200, Y: 0, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: -200, Y: 400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: 200, Y: 400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FloorISM, X: 0, Y: -800, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -400, Y: -400, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -400, Y: 0, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -400, Y: 400, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 400, Y: -400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 400, Y: 0, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 400, Y: 400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -200, Y: -600, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 200, Y: -600, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -200, Y: 600, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 200, Y: 600, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: -200, Y: -800, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 200, Y: -800, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $FoundationISM, X: 0, Y: -1000, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $GableDoorISM, X: 0, Y: -600, Z: 0, Yaw: 270, SX: 1, SY: 2, SZ: 1)
+    call PlaceSelectedGableWindow(X: 0, Y: 600, Yaw: 90, WidthScale: 2)
+    call PlaceSelectedWindow(X: -400, Y: -400, Yaw: 180)
+    call PlaceCabinModule(Component: $WallSolidISM, X: -400, Y: 0, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceSelectedWindow(X: -400, Y: 400, Yaw: 180)
+    call PlaceCabinModule(Component: $WallSolidISM, X: 400, Y: -400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceSelectedWindow(X: 400, Y: 0, Yaw: 0)
+    call PlaceCabinModule(Component: $WallSolidISM, X: 400, Y: 400, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: -400, Y: -600, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 400, Y: -600, Z: 0, Yaw: 270, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: -400, Y: 600, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 400, Y: 600, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: -400, Y: -200, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: -400, Y: 200, Z: 0, Yaw: 180, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 400, Y: -200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 400, Y: 200, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PillarISM, X: 0, Y: 600, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $RoofEndLeftISM, X: 0, Y: -400, Z: 310, Yaw: 90, SX: 1, SY: 2, SZ: 1)
+    call PlaceCabinModule(Component: $RoofISM, X: 0, Y: 0, Z: 310, Yaw: 90, SX: 1, SY: 2, SZ: 1)
+    call PlaceCabinModule(Component: $RoofEndRightISM, X: 0, Y: 400, Z: 310, Yaw: 90, SX: 1, SY: 2, SZ: 1)
+    call PlaceCabinModule(Component: $PorchRoofISM, X: 0, Y: -600, Z: 265, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall200ISM, X: -300, Y: -100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionDoorwayISM, X: -100, Y: -100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall200ISM, X: 100, Y: -100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall200ISM, X: 300, Y: -100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall200ISM, X: -300, Y: 250, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionDoorwayISM, X: -100, Y: 250, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall200ISM, X: 100, Y: 250, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionDoorwayISM, X: 300, Y: 250, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall200ISM, X: 0, Y: 350, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall100ISM, X: 0, Y: 500, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionDoorwayISM, X: 100, Y: 0, Z: 0, Yaw: 90, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall200ISM, X: 200, Y: 100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionWall100ISM, X: 350, Y: 100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionTrimISM, X: 0, Y: 250, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionTrimISM, X: 0, Y: 600, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionTrimISM, X: 100, Y: -100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionTrimISM, X: 100, Y: 100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    call PlaceCabinModule(Component: $PartitionTrimISM, X: 400, Y: 100, Z: 0, Yaw: 0, SX: 1, SY: 1, SZ: 1)
+    set GeneratedModuleCount = 59
+}
+
+entry function PlanCabinRooms() {
+    call Array_Clear(TargetArray: $GeneratedRooms)
+    %layout = switch_int($LayoutVariant) [2 -> @square, 3 -> @large, default -> @done]
+@square:
+    call AddCabinRoom(Kind: "LivingKitchen", MinX: -380, MinY: -380, MaxX: 380, MaxY: 100, DoorX: 0, DoorY: -400)
+    call AddCabinRoom(Kind: "Bedroom", MinX: -380, MinY: 100, MaxX: 0, MaxY: 380, DoorX: -300, DoorY: 100)
+    call AddCabinRoom(Kind: "BathroomUtility", MinX: 0, MinY: 100, MaxX: 380, MaxY: 380, DoorX: 100, DoorY: 100)
+    return
+@large:
+    call AddCabinRoom(Kind: "Living", MinX: -380, MinY: -580, MaxX: 380, MaxY: -100, DoorX: 0, DoorY: -600)
+    call AddCabinRoom(Kind: "KitchenDining", MinX: -380, MinY: -100, MaxX: 380, MaxY: 250, DoorX: -100, DoorY: -100)
+    call AddCabinRoom(Kind: "Bedroom1", MinX: -380, MinY: 250, MaxX: 0, MaxY: 580, DoorX: -100, DoorY: 250)
+    call AddCabinRoom(Kind: "Bedroom2", MinX: 0, MinY: 250, MaxX: 380, MaxY: 580, DoorX: 300, DoorY: 250)
+    call AddCabinRoom(Kind: "BathroomUtility", MinX: 100, MinY: -100, MaxX: 380, MaxY: 100, DoorX: 100, DoorY: 0)
+@done:
+}
+
+@meta(Category="Cabin Generator")
+@flags(Public, CallInEditor)
+entry function RegenerateCabin() {
+    %stream = call MakeRandomStream(InitialSeed: $Seed)
+    %randomWindow = call RandomIntegerInRangeFromStream(Stream: %stream, Min: 0, Max: 1)
+    %automatic = call EqualEqual_IntInt(A: $WindowStyle, B: -1)
+    %window = select(Index: %automatic, false: $WindowStyle, true: %randomWindow)
+    set LastWindowSelection = %window
+    %orientation = switch_int($EntranceOrientation) [0 -> @north, 1 -> @east, 2 -> @south, 3 -> @west, default -> @north]
+@north:
+    call K2_SetActorRotation(NewRotation: 0,0,0, bTeleportPhysics: true)
+    exec -> @build
+@east:
+    call K2_SetActorRotation(NewRotation: 0,90,0, bTeleportPhysics: true)
+    exec -> @build
+@south:
+    call K2_SetActorRotation(NewRotation: 0,180,0, bTeleportPhysics: true)
+    exec -> @build
+@west:
+    call K2_SetActorRotation(NewRotation: 0,270,0, bTeleportPhysics: true)
+@build:
+    call ClearCabinModules()
+    %layout = switch_int($LayoutVariant) [0 -> @legacy, 1 -> @legacy, 2 -> @square, 3 -> @large, default -> @invalid]
+@legacy:
+    call GenerateLegacyCabin()
+    exec -> @finalize
+@square:
+    call GenerateSquareCabin()
+    exec -> @rooms
+@large:
+    call GenerateLargeCabin()
+@rooms:
+    call PlanCabinRooms()
+    exec -> @finalize
+@invalid:
+    set GeneratedModuleCount = 0
+    set bValidationPassed = false
+    set bWallContinuityValid = false
+    set bRoofCoverageValid = false
+    set bCollisionClearanceValid = false
+    set bExactRepeatValid = false
+    set ValidationMessage = "Invalid LayoutVariant. Use 0 Trapper, 1 Long, 2 Square 8x8, or 3 Large 8x12."
+    return
+@finalize:
+    set LastGeneratedSeed = $Seed
+    %seedHash = call Multiply_IntInt(A: $Seed, B: 31)
+    %layoutHash = call Multiply_IntInt(A: $LayoutVariant, B: 7)
+    %hashA = call Add_IntInt(A: %seedHash, B: %layoutHash)
+    %orientationHash = call Multiply_IntInt(A: $EntranceOrientation, B: 3)
+    %hashB = call Add_IntInt(A: %hashA, B: %orientationHash)
+    %hash = call Add_IntInt(A: %hashB, B: %window)
+    set GenerationFingerprint = %hash
+    set bValidationPassed = false
+    set bWallContinuityValid = false
+    set bRoofCoverageValid = false
+    set bCollisionClearanceValid = false
+    set bExactRepeatValid = false
+    set ValidationMessage = "Generated deterministically. Structural, room-connectivity and collision validation pending."
+}
